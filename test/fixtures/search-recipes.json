@@ -1,0 +1,44 @@
+{
+  "pages": [
+    {
+      "id": 1938123902,
+      "key": "Cookbook:Salt_Flat_Noodles",
+      "title": "Cookbook:Salt Flat Noodles",
+      "matched_title": null,
+      "anchor": null,
+      "description": "a noodle dish",
+      "thumbnail": {
+        "mimetype": "image/jpeg",
+        "width": 60,
+        "height": 55,
+        "url": "//upload.example.invalid/thumb/60px-salt-flat-noodles.jpg"
+      },
+      "excerpt": "Recipes | Noodles Salt flat <span class=\"searchmatch\">noodles</span> are a dish of the orchard country"
+    },
+    {
+      "id": 1025322365,
+      "key": "Cookbook:Orchard_Butter",
+      "title": "Cookbook:Orchard Butter",
+      "matched_title": null,
+      "anchor": null,
+      "description": null,
+      "thumbnail": null,
+      "excerpt": "a spread churned from &quot;late fruit&quot; and <span class=\"searchmatch\">salt</span>"
+    },
+    {
+      "id": 1403792552,
+      "key": "Glassblowing/Annealing",
+      "title": "Glassblowing/Annealing",
+      "matched_title": null,
+      "anchor": null,
+      "description": null,
+      "thumbnail": null,
+      "excerpt": "the <span class=\"searchmatch\">salt</span> bath is held just below the strain point"
+    },
+    {
+      "id": 5,
+      "title": "A row with no key",
+      "excerpt": "nothing to link to"
+    }
+  ]
+}

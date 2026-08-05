@@ -1,0 +1,8 @@
+{
+  "errorKey": "rest-nonexistent-title",
+  "messageTranslations": {
+    "en": "The specified page (Cookbook:No_Such_Dish) does not exist"
+  },
+  "httpCode": 404,
+  "httpReason": "Not Found"
+}

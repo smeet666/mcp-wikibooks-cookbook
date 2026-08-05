@@ -1,0 +1,15 @@
+{
+  "id": 4,
+  "key": "Cookbook:Flat_Bread",
+  "title": "Cookbook:Flat Bread",
+  "latest": {
+    "id": 3,
+    "timestamp": "2024-11-11T11:11:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "{{recipesummary|category=Bread recipes|servings=4 to 6|time=|difficulty=}}\n\nA '''flat bread''' cooked dry on a stone.\n\n== Ingredients ==\n* 250 g hard flour\n* Salt\n\n== Procedure ==\n# Work the flour and the water into a dough and let it rest."
+}
