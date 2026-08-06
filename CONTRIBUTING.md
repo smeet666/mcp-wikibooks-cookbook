@@ -54,8 +54,8 @@ turned down however useful it looks:
   has to credit Wikibooks and share alike. The address and the licence go out
   with the recipe for that reason.
 - **A quantity is either scaled honestly or flagged.** Rounding a countable
-  thing, demoting a measurement before rounding it, refusing to cut a sealed
-  packet: all of it exists so that no line comes back multiplied in a way a
+  thing, demoting a measurement before rounding it, counting an egg whole
+  because half of one cannot be measured out: all of it exists so that no line comes back multiplied in a way a
   kitchen cannot follow, and no line comes back multiplied when it should not
   have been touched at all.
 - **The server paces itself.** Wikimedia runs the developer gateway for free,
@@ -108,7 +108,8 @@ uses. The suite is full of them, and one more costs nothing.
 
 Say which rule your change belongs to. A count of eggs and a count of garlic
 cloves round differently because half an egg cannot be measured out and half a
-clove can; a sealed packet is not cut at all; a pinch is multiplied as pinches
+clove can; a can is divided by what it holds rather than by the tin; a pinch is
+multiplied as pinches
 because it is an amount rather than a measurement. A change that moves one line
 into a different rule usually needs the rule restated, not just the line fixed.
 

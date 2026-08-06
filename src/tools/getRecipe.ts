@@ -25,7 +25,7 @@ import type { ToolResult } from "./shared.js";
 export const getRecipeDescription = [
   "Read one Wikibooks Cookbook page: ingredients, equipment, steps, yield, time, difficulty, category, and the nutrition panel when the page carries one.",
   "'id' is the page key from search_recipes or list_recipes, such as 'Cookbook:Spaghetti_alla_Carbonara'. A plain dish name is accepted and the Cookbook namespace is added.",
-  "Pass 'servings' to rescale: countable things land on whole or half units, a measurement is moved to a smaller unit before rounding so nothing disappears, and anything that cannot be multiplied is flagged instead. Read 'scaling' on each ingredient rather than doing the arithmetic yourself.",
+  "Pass 'servings' to rescale: a countable thing lands on a half when half of one can be poured, weighed or cut, such as a can or a clove, and on a whole one when it cannot, such as an egg; a measurement is moved to a smaller unit before rounding so nothing disappears; and anything that cannot be multiplied is flagged instead. Read 'scaling' on each ingredient rather than doing the arithmetic yourself.",
   "Rescaling needs a yield to scale from. A page that states none comes back as published, and says so.",
   "A page yielding no quantities is answered with 'factor' 1 and a note: an empty ingredient list was multiplied by nothing.",
   "'author' and 'rating' are always null: the Cookbook is written collectively and carries no reader score.",

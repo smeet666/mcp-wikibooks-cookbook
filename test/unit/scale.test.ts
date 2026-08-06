@@ -35,9 +35,13 @@ describe("scaleIngredient, countable things", () => {
     expect(result.amount).toBeLessThanOrEqual(1);
   });
 
-  it("halves a spoon but not a can", () => {
+  // This test used to require three cans halved to come back as two, on the
+  // reading that a sealed container is taken whole or not at all. What decides
+  // is the content: tomatoes are poured out and the rest kept, so half a can is
+  // an amount, and rounding it up added a sixth of the tomatoes to the dish.
+  it("halves a spoon and halves a can", () => {
     expect(scale("3 tablespoons oil", 0.5).text).toBe("1 1/2 tablespoons oil");
-    expect(scale("3 cans tomatoes", 0.5).text).toBe("2 cans tomatoes");
+    expect(scale("3 cans tomatoes", 0.5).text).toBe("1 1/2 cans tomatoes");
   });
 });
 

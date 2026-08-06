@@ -1,6 +1,21 @@
 # Changelog
 
-## Unreleased
+## 1.1.0
+
+- A counted container is divided by what it holds rather than by what holds it. A can, a jar, a
+  packet, a package, a sheet of gelatine, a leaf and a sprig were classed as indivisible and
+  came back whole whatever the factor: "1 can tomatoes" taken to two fifths read "1 can
+  tomatoes", two and a half times the tomatoes the share called for. Half of each of those can
+  be poured, weighed or cut out and the rest kept, so they now land on a half, as a clove of
+  garlic already did.
+- What stays whole is what half of cannot be measured out at all. The egg is the case that
+  names the rule, together with the yolk and the white, and it is unchanged: "3 eggs" taken
+  from six servings to twenty-five is 13 eggs.
+- "ea" counts pieces without saying anything about them, so the item standing beside it decides
+  how far the count divides. "12 ea. egg yolks" is still counted whole.
+- The floor a shrinking line is clamped up to follows the same rule: a quarter for produce a
+  knife divides, a half for a container or a clove, one whole for an egg. A packet halved
+  therefore reads "1/2 packet" instead of being rounded back up to one.
 
 - Ingredients written as a `wikitable` are read: the amount comes from whichever of the Count,
   Volume and Weight columns the row fills, and a baker's percentage column is left out of it.

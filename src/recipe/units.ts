@@ -118,7 +118,8 @@ const UNITS: Record<string, UnitInfo> = {
   cup: { canonical: "cup", kind: "portioned", system: "imperial", plural: "cups" },
   cups: { canonical: "cup", kind: "portioned", system: "imperial", plural: "cups" },
 
-  // Packaging and natural units: countable, so they round to whole things.
+  // Packaging and natural units: countable, and divisible as far as what they
+  // hold allows. See `unitDivisibility`.
   can: { canonical: "can", kind: "portioned", system: "none" },
   cans: { canonical: "can", kind: "portioned", system: "none" },
   jar: { canonical: "jar", kind: "portioned", system: "none" },
@@ -336,24 +337,40 @@ export function isSpoonMeasure(unit: UnitInfo): boolean {
 
 /** How finely a kitchen can divide one of a counted thing. */
 export type Divisibility =
-  /** A can, a packet: opening one is all or nothing. */
+  /** An egg: half of one is not an amount a kitchen measures out. */
   | "whole"
-  /** An egg, a clove: it splits in two, and no finer. */
+  /** A can, a clove, a sheet of gelatine: it splits in two, and no finer. */
   | "half"
   /** An onion, an apple: a knife takes it to quarters. */
   | "quarter";
 
 /**
- * Counted units that come sealed or come as one piece, where a fraction is a
- * leftover rather than an amount.
+ * How finely a unit divides, decided by what one of them holds rather than by
+ * what holds it.
+ *
+ * The question is whether half of one is a quantity a cook can take: a can of
+ * tomatoes is poured and the rest kept, a packet of vanilla sugar is split by
+ * eye, a sheet of gelatine is cut with scissors, a sprig of thyme is pinched in
+ * two. Content that pours, weighs or cuts therefore divides, and the word for
+ * the packaging settles nothing. What stays whole is what half of cannot be
+ * measured out at all, and the egg is the case that names the rule: half of one
+ * would have to be beaten and weighed, which is not what a recipe asks for.
+ * That test belongs to the thing being counted, so it lives with the item in
+ * `scale.ts`.
+ *
+ * A gesture keeps its own answer: half a pinch is a fraction of a hand, and the
+ * count is the whole of what a pinch can say.
+ *
+ * "ea" counts pieces without naming them, so it leaves the question to the item
+ * standing beside it.
  */
-const INDIVISIBLE = new Set(["can", "jar", "packet", "package", "sheet", "leaf", "sprig", "ea"]);
-
 export function unitDivisibility(unit: UnitInfo): Divisibility {
-  // Half a pinch is a fraction of a gesture, so an approximate measure counts
-  // in whole ones.
-  if (unit.kind === "approximate") return "whole";
-  return INDIVISIBLE.has(normalizeUnitKey(unit.canonical)) ? "whole" : "half";
+  return unit.kind === "approximate" ? "whole" : "half";
+}
+
+/** True for a unit that counts pieces without saying anything about them. */
+export function countsBarePieces(unit: UnitInfo): boolean {
+  return unit.canonical === "ea";
 }
 
 export interface ChosenUnit {

@@ -68,6 +68,38 @@ describe("an approximate measure the vocabulary has not met", () => {
   });
 });
 
+describe("the whole batter, from four eaters to twenty-four", () => {
+  const BATTER = [
+    "a pinch of salt",
+    "1 teaspoon sugar",
+    "1 tablespoon softened butter",
+    "1 cup Mountain Dew",
+    "6 eggs",
+    "1 kilogram flour",
+    "2/3 of a bottle of orange blossom water",
+    "3 sachets vanilla sugar",
+    "a capful of rum",
+    "1/4 liter milk",
+  ];
+
+  it("multiplies every line by six and calls each one exact", () => {
+    const lines = BATTER.map((line) => scale(line, 6));
+    expect(lines.map((entry) => entry.text)).toEqual([
+      "6 pinches salt",
+      "6 teaspoons sugar",
+      "6 tablespoons softened butter",
+      "6 cups Mountain Dew",
+      "36 eggs",
+      "6 kg flour",
+      "4 bottles of orange blossom water",
+      "18 sachets vanilla sugar",
+      "6 capfuls rum",
+      "1.5 l milk",
+    ]);
+    for (const entry of lines) expect(entry.scaling, entry.original).toBe("scaled");
+  });
+});
+
 describe("the label an exact multiplication carries", () => {
   it("calls a whole-number product scaled", () => {
     for (const line of [

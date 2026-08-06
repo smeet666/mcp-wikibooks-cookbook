@@ -67,12 +67,16 @@ repeats them is confidently wrong about a dish somebody is about to cook.
 
 Six rules do the work.
 
-**A countable thing lands where a cook can divide it.** Half an egg cannot be measured out, so a
-count of eggs, yolks or whites lands on a whole number. Half a clove of garlic can be cut, so a
-clove lands on a half. The rounded line says which way it moved.
+**A countable thing lands where a cook can divide it.** What decides is the content, not the
+container: a can of tomatoes is poured and the rest kept, a packet of vanilla sugar is split by
+eye, a sheet of gelatine is cut with scissors, a sprig of thyme is pinched in two, so all of
+those land on a half, as a clove of garlic does. Half an egg would have to be beaten and
+weighed, which is not an amount a recipe asks for, so a count of eggs, yolks or whites lands on
+a whole number. The rounded line says which way it moved.
 
-**A sealed packet is never cut.** A can, a jar, a packet, a sheet of gelatine: opening one is
-all or nothing, so those land on a whole one whatever the factor says.
+**A shrinking line keeps the smallest share still worth measuring.** A knife takes an onion to a
+quarter; a can, a packet or a clove goes to a half; an egg stops at one. Under that floor the
+amount is clamped up and the line says it no longer holds its share of the recipe.
 
 **A measurement moves to a smaller unit before it is rounded.** A quantity that would fall below
 one is demoted first, so 1 tablespoon quartered reads as 1 teaspoon rather than rounding away to
@@ -379,13 +383,17 @@ qui les répète se trompe avec aplomb sur un plat que quelqu'un s'apprête à c
 
 Six règles font le travail.
 
-**Un dénombrable atterrit là où un cuisinier peut le diviser.** Un demi-œuf ne se mesure pas :
-un nombre d'œufs, de jaunes ou de blancs tombe sur un entier. Une demi-gousse d'ail se coupe :
-une gousse tombe sur une demie. La ligne arrondie dit dans quel sens elle a bougé.
+**Un dénombrable atterrit là où un cuisinier peut le diviser.** Ce qui décide, c'est le contenu
+et non le contenant : une boîte de tomates se verse et le reste se garde, un sachet de sucre
+vanillé se partage à l'œil, une feuille de gélatine se coupe aux ciseaux, une branche de thym se
+casse en deux ; tous tombent donc sur une demie, comme une gousse d'ail. Un demi-œuf, lui,
+demanderait de le battre et de le peser, ce qu'aucune recette ne demande : un nombre d'œufs, de
+jaunes ou de blancs tombe sur un entier. La ligne arrondie dit dans quel sens elle a bougé.
 
-**Un emballage scellé n'est jamais coupé.** Une boîte, un pot, un sachet, une feuille de
-gélatine : on l'ouvre entièrement ou pas du tout, donc ceux-là tombent sur une unité entière
-quel que soit le facteur.
+**Une ligne qui rétrécit garde la plus petite part qui vaille encore la peine.** Le couteau mène
+un oignon au quart ; une boîte, un sachet ou une gousse s'arrêtent à la demie ; un œuf s'arrête à
+l'unité. Sous ce plancher, la quantité est remontée et la ligne dit qu'elle ne tient plus sa part
+de la recette.
 
 **Une mesure descend vers une unité plus petite avant d'être arrondie.** Une quantité qui
 passerait sous l'unité est d'abord convertie, si bien qu'une cuillère à soupe divisée par quatre

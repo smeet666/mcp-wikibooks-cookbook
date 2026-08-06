@@ -57,7 +57,7 @@ Lifestyle & Cooking
 - Rescale by servings, or rescale any English ingredient list offline
 - A countable thing lands where a kitchen can follow: an egg on a whole one, a clove of garlic on a half
 - A small measurement moves to a smaller unit before it is rounded, so it never disappears
-- A sealed packet is never cut in two
+- A container is divided by what it holds: half a can of tomatoes is an amount, half an egg is not
 - An approximate measure such as a pinch is multiplied as pinches rather than converted
 - A line publishing two quantities, metric and imperial, has both of them scaled
 - Every scaled line says whether it was exact, rounded, or left as published

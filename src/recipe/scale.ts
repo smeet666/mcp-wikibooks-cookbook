@@ -20,6 +20,7 @@ import {
   EMBEDDED_MEASURE,
   approximateEquivalent,
   chooseReadableUnit,
+  countsBarePieces,
   demoteUnit,
   formatUnit,
   isSpoonMeasure,
@@ -294,8 +295,7 @@ function scaleMeasure(
 
 /**
  * Produce a knife divides as far as quarters, so a quarter of an onion is an
- * amount. A clove splits in two and no further, and a can does not split at
- * all.
+ * amount. Anything else counted goes as far as the half.
  */
 const QUARTERED_ITEM =
   /\b(onions?|shallots?|potatoes|potato|carrots?|apples?|pears?|lemons?|limes?|oranges?|tomato(?:es)?|cucumbers?|courgettes?|zucchinis?|aubergines?|eggplants?|squash(?:es)?|pumpkins?|cabbages?|melons?|peppers?|beets?|turnips?|parsnips?)\b/i;
@@ -304,14 +304,15 @@ const QUARTERED_ITEM =
  * Things a kitchen takes one of or none of.
  *
  * An egg comes out of its shell whole, and so does the yolk or the white a
- * recipe asks for on its own: there is no half of either that a cook can
- * measure out and no way to keep the other half. A count of them therefore
- * lands on a whole number, whichever side of the half the arithmetic fell on.
+ * recipe asks for on its own: half of one would have to be beaten and weighed,
+ * which is not an amount any recipe asks for and not one a cook can keep the
+ * rest of. A count of them therefore lands on a whole number, whichever side of
+ * the half the arithmetic fell on.
  */
 const WHOLE_ITEM = /\b(eggs?|yolks?|egg\s+whites?)\b/i;
 
 function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
-  if (unit) return unitDivisibility(unit);
+  if (unit && !countsBarePieces(unit)) return unitDivisibility(unit);
   if (WHOLE_ITEM.test(item)) return "whole";
   return QUARTERED_ITEM.test(item) ? "quarter" : "half";
 }
