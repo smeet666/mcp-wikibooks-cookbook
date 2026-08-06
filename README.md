@@ -3,6 +3,7 @@
 [![npm](https://img.shields.io/npm/v/mcp-wikibooks-cookbook.svg)](https://www.npmjs.com/package/mcp-wikibooks-cookbook)
 [![CI](https://github.com/smeet666/mcp-wikibooks-cookbook/actions/workflows/ci.yml/badge.svg)](https://github.com/smeet666/mcp-wikibooks-cookbook/actions/workflows/ci.yml)
 [![license](https://img.shields.io/npm/l/mcp-wikibooks-cookbook.svg)](LICENSE)
+[![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6E56CF)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.smeet666/mcp-wikibooks-cookbook)
 [![Glama](https://glama.ai/mcp/servers/smeet666/mcp-wikibooks-cookbook/badges/score.svg)](https://glama.ai/mcp/servers/smeet666/mcp-wikibooks-cookbook)
 
 An MCP server for the [Cookbook](https://en.wikibooks.org/wiki/Cookbook:Table_of_Contents) on
