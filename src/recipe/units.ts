@@ -363,10 +363,32 @@ export type Divisibility =
  *
  * "ea" counts pieces without naming them, so it leaves the question to the item
  * standing beside it.
+ *
+ * A short list of measures goes one step further, to the quarter. See
+ * `QUARTERED_MEASURE`.
  */
 export function unitDivisibility(unit: UnitInfo): Divisibility {
-  return unit.kind === "approximate" ? "whole" : "half";
+  if (unit.kind === "approximate") return "whole";
+  return QUARTERED_MEASURE.test(unit.canonical) ? "quarter" : "half";
 }
+
+/**
+ * Measures a cook takes a quarter of.
+ *
+ * The half is as far as the criterion goes on its own, because that is the
+ * share most measures give up by eye. These four answer the size question
+ * differently. A bottle, a jar and a block hold enough that a quarter is still
+ * a portion someone serves and the rest still keeps: a quarter of a bottle of
+ * wine is a glass, a quarter of a jar of salsa is a bowlful, a quarter of a
+ * block of tofu is a piece cut on a board. A slice is already cut off something
+ * larger, and the board that produced one takes a corner off it in the same
+ * gesture: a quarter of a slice of bread is a crouton.
+ *
+ * The pattern is exported because any of these words can stand where the
+ * measure goes or inside the name of what is counted, and both readings answer
+ * to the same list.
+ */
+export const QUARTERED_MEASURE = /\b(bottles?|blocks?|jars?|slices?)\b/i;
 
 /** True for a unit that counts pieces without saying anything about them. */
 export function countsBarePieces(unit: UnitInfo): boolean {

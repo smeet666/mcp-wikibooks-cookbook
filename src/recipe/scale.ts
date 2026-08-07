@@ -18,6 +18,7 @@ import type { Measure, ParsedIngredient } from "./quantity.js";
 import type { Divisibility, UnitInfo } from "./units.js";
 import {
   EMBEDDED_MEASURE,
+  QUARTERED_MEASURE,
   approximateEquivalent,
   chooseReadableUnit,
   countsBarePieces,
@@ -294,11 +295,39 @@ function scaleMeasure(
 }
 
 /**
- * Produce a knife divides as far as quarters, so a quarter of an onion is an
- * amount. Anything else counted goes as far as the half.
+ * How finely a counted thing divides, decided by the size of one of them
+ * against what a recipe puts in.
+ *
+ * `PORTION_SIZED_ITEM` and `QUARTERED_ITEM` are the two ends of that one
+ * comparison, and each entry earns its place by where the food falls on it.
+ *
+ * A shrimp, a mussel, a hazelnut, a peppercorn, a juniper berry, a star anise
+ * is already a portion on its own. A recipe counts five, twelve, twenty of
+ * them, and a cook taking a share of that recipe puts one fewer in the pan;
+ * cutting one in two is not a thing a kitchen does. These land on a whole
+ * number.
+ *
+ * A leg of lamb, a baguette, a camembert, a pineapple, an onion, a watermelon,
+ * a guinea fowl sits at the other end: a recipe asks for one or for two, and
+ * the share it wants out of one is decided by a knife. A quarter of one is a
+ * piece someone serves, and what is left keeps.
  */
+const PORTION_SIZED_ITEM =
+  /\b(shrimps?|prawns?|langoustines?|mussels?|hazelnuts?|peppercorns?|junipers?|grains?|anise)\b/i;
+
 const QUARTERED_ITEM =
-  /\b(onions?|shallots?|potatoes|potato|carrots?|apples?|pears?|lemons?|limes?|oranges?|tomato(?:es)?|cucumbers?|courgettes?|zucchinis?|aubergines?|eggplants?|squash(?:es)?|pumpkins?|cabbages?|melons?|peppers?|beets?|turnips?|parsnips?)\b/i;
+  /\b(onions?|shallots?|potatoes|potato|carrots?|apples?|pears?|lemons?|limes?|oranges?|tomato(?:es)?|cucumbers?|courgettes?|zucchinis?|aubergines?|eggplants?|squash(?:es)?|pumpkins?|cabbages?|melons?|watermelons?|peppers?|beets?|turnips?|parsnips?|leeks?|bananas?|mango(?:e?s)?|legs? of lamb|lamb legs?|baguettes?|camemberts?|cheeses?|chorizos?|pineapples?|peach(?:es)?|apricots?|milk|chickens?|guinea fowls?|avocados?|roasts?)\b/i;
+
+/**
+ * A juice, the one counted thing whose division stops at the half.
+ *
+ * Half the juice of a lemon is taken by squeezing half the fruit, which is a
+ * step a recipe writes. A quarter of one has to be poured out and measured
+ * back, and no recipe asks for that.
+ *
+ * It reads before the fruit, which a knife divides further on its own.
+ */
+const HALVED_ITEM = /\bjuices?\b/i;
 
 /**
  * Things a kitchen takes one of or none of.
@@ -308,12 +337,58 @@ const QUARTERED_ITEM =
  * which is not an amount any recipe asks for and not one a cook can keep the
  * rest of. A count of them therefore lands on a whole number, whichever side of
  * the half the arithmetic fell on.
+ *
+ * A zest belongs here for a reason the criterion cannot reach on its own: it is
+ * what comes off one fruit in one go. A line asking for the zest of a lemon is
+ * asking for all of it, and a share of a zest names no amount a cook stops at.
  */
-const WHOLE_ITEM = /\b(eggs?|yolks?|egg\s+whites?)\b/i;
+const WHOLE_ITEM = /\b(eggs?|yolks?|egg\s+whites?|zests?)\b/i;
+
+/**
+ * A piece carved off a bird or off a joint, which stops at the half.
+ *
+ * The whole animal divides by the knife that portions it, and one of these is
+ * already the portion that knife produced: a breast feeds one, and half of one
+ * is the share a smaller recipe serves. Taking a quarter would name a piece no
+ * one plates.
+ *
+ * It reads before the animal, and before the fruit or the vegetable a line
+ * often names beside the meat, so that neither answers for the cut.
+ */
+const HALVED_CUT = /\b(breasts?|thighs?|drumsticks?|wings?|cutlets?|escalopes?)\b/i;
+
+/**
+ * How far a "clove" divides, when a line counts one.
+ *
+ * The word names two foods that answer the question in opposite ways. A clove
+ * of garlic is a wedge broken off a bulb, and a quarter of one is what a knife
+ * scrapes into a pan. A clove on its own is the dried flower bud, dropped into
+ * the pot and fished back out of it: nothing about it is measured, so there is
+ * no share of one to take.
+ *
+ * Garlic named in the line is what separates the two, and that is how the great
+ * majority of lines writing the word say which food they mean.
+ *
+ * The question is asked only where the clove is the thing being counted. A head
+ * of garlic that mentions its cloves is a head, and divides as one.
+ *
+ * Null when the line counts no clove at all.
+ */
+function cloveDivisibility(unit: UnitInfo | null, item: string): Divisibility | null {
+  const counted = unit ? unit.canonical === "clove" : /\bcloves?\b/i.test(item);
+  if (!counted) return null;
+  return /\bgarlic\b/i.test(item) ? "quarter" : "whole";
+}
 
 function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
+  const clove = cloveDivisibility(unit, item);
+  if (clove) return clove;
   if (unit && !countsBarePieces(unit)) return unitDivisibility(unit);
   if (WHOLE_ITEM.test(item)) return "whole";
+  if (PORTION_SIZED_ITEM.test(item)) return "whole";
+  if (HALVED_ITEM.test(item)) return "half";
+  if (HALVED_CUT.test(item)) return "half";
+  if (QUARTERED_MEASURE.test(item)) return "quarter";
   return QUARTERED_ITEM.test(item) ? "quarter" : "half";
 }
 
@@ -365,6 +440,7 @@ export function agreeWithAmount(item: string, amount: number): string {
  * are plurals already. An -s added to one of them names a thing no shop sells.
  */
 const INVARIABLE_ITEM = new Set([
+  "anise",
   "asparagus",
   "bacon",
   "basil",
@@ -374,6 +450,7 @@ const INVARIABLE_ITEM = new Set([
   "butter",
   "celery",
   "cilantro",
+  "citrus",
   "cinnamon",
   "cocoa",
   "cod",
@@ -389,11 +466,13 @@ const INVARIABLE_ITEM = new Set([
   "ginger",
   "ham",
   "honey",
+  "hummus",
   "kale",
   "lamb",
   "macaroni",
   "milk",
   "miso",
+  "musk",
   "moose",
   "mutton",
   "nutmeg",
@@ -471,10 +550,14 @@ function toSingular(word: string): string {
   const irregular = IRREGULAR_SINGULAR[key];
   if (irregular) return matchCase(word, irregular);
   if (/ies$/i.test(word) && word.length > 4) return `${word.slice(0, -3)}y`;
-  if (/ves$/i.test(word) && word.length > 4) return `${word.slice(0, -3)}f`;
+  // A -ves plural belongs to a noun ending in -f or -fe, and those are named
+  // one by one in `IRREGULAR_PLURAL`: turning every -ves back into -f makes a
+  // "clof" out of "cloves" and an "olif" out of "olives".
   if (/(?:ch|sh|s|x|z)es$/i.test(word)) return word.slice(0, -2);
-  // "glass", "couscous", "molasses": the -s belongs to the singular.
-  if (/(?:ss|us|is)$/i.test(word)) return word;
+  // "glass", "molasses": the -s belongs to the singular. Beyond the doubled -s
+  // the ending settles nothing, "couscous" and "kiwis" both closing on -us, so
+  // the names that carry their -s are named in `INVARIABLE_ITEM`.
+  if (/ss$/i.test(word)) return word;
   if (/s$/i.test(word)) return word.slice(0, -1);
   return word;
 }
@@ -626,7 +709,11 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
     high === null ? null : asText(high.amount),
     parsed.rangeSeparator,
   );
-  const unitLabel = unit ? ` ${formatUnit(unit, shown)}` : "";
+  // "ea" announces that the figure counts pieces, and names no measure of them,
+  // so the line reads as the count of the thing itself and the marker has
+  // nothing to say in it.
+  const named = unit && !countsBarePieces(unit) ? unit : null;
+  const unitLabel = named ? ` ${formatUnit(named, shown)}` : "";
   const alternateTexts = alternates.map((entry) => entry.text);
   // Equivalents go back the way the line offered them: inside brackets, or
   // after a slash beside the amount they restate.
@@ -637,7 +724,7 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
         ? ` / ${alternateTexts.join(" / ")}`
         : ` (${alternateTexts.join(" / ")})`;
   // A counted item agrees with its number: "1 egg yolk", "3 loaves".
-  const item = unit ? parsed.item : agreeWithAmount(parsed.item, shown);
+  const item = named ? parsed.item : agreeWithAmount(parsed.item, shown);
   const itemLabel = item ? ` ${item}` : "";
 
   const result: ScaledIngredient = {
@@ -646,7 +733,7 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
     scaling: movedPrimary || movedAlternate || restated ? "rounded" : "scaled",
     amount: low.amount,
     amountMax: high?.amount ?? null,
-    unit: unit?.canonical ?? null,
+    unit: named?.canonical ?? null,
   };
 
   const asPublished = (value: number, source: UnitInfo | null) =>

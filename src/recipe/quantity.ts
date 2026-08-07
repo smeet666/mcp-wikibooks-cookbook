@@ -253,6 +253,14 @@ export function parseIngredient(line: string): ParsedIngredient {
     .slice(quantity.length)
     .trimStart()
     .replace(/^(?:of\s+)?an?\s+/i, "");
+
+  // "2 dozen mushrooms" counts mushrooms, twelve to the dozen, so the multiplier
+  // is folded into the amount and the line goes on to be read as the count of a
+  // thing it now is.
+  const multiplier = readCountMultiplier(rest);
+  if (multiplier) rest = multiplier.rest;
+  const times = multiplier?.times ?? 1;
+
   const leading = takeUnit(rest);
   rest = leading.rest;
 
@@ -264,8 +272,8 @@ export function parseIngredient(line: string): ParsedIngredient {
 
   return {
     original,
-    amount: quantity.amount,
-    amountMax: range?.max ?? null,
+    amount: quantity.amount * times,
+    amountMax: range === null ? null : range.max * times,
     rangeSeparator: range?.separator ?? null,
     unit: leading.unit,
     alternates: slashed ? slashed.measures : bracketed.measures,
@@ -296,9 +304,34 @@ export function parseIngredient(line: string): ParsedIngredient {
 function articleAsOne(text: string): ParsedQuantity | null {
   const article = /^an?\s+/i.exec(text);
   if (!article) return null;
-  return takeUnit(text.slice(article[0].length)).unit === null
-    ? null
-    : { amount: 1, length: article[0].length };
+  const rest = text.slice(article[0].length);
+  const counts = takeUnit(rest).unit !== null || readCountMultiplier(rest) !== null;
+  return counts ? { amount: 1, length: article[0].length } : null;
+}
+
+/**
+ * Words that say how many things a number stands for, rather than how much of
+ * something one of them holds.
+ *
+ * A dozen is twelve of whatever is being counted. "2 dozen mushrooms" therefore
+ * asks for twenty-four mushrooms, and the answer divides the way a mushroom
+ * does. Reading the word as a measure gives "1 1/2 dozen", which is not a count
+ * a kitchen works with, and it hands the question of divisibility to a word that
+ * names no food.
+ */
+const COUNT_MULTIPLIERS: Record<string, number> = {
+  dozen: 12,
+  dozens: 12,
+};
+
+/** The multiplier a line opens with, and what stands after it. */
+function readCountMultiplier(text: string): { times: number; rest: string } | null {
+  const match = /^\s*([A-Za-z]+)\s+/.exec(text);
+  if (!match) return null;
+
+  const times = COUNT_MULTIPLIERS[normalizeUnitKey(match[1]!)];
+  if (times === undefined) return null;
+  return { times, rest: text.slice(match[0].length) };
 }
 
 /**

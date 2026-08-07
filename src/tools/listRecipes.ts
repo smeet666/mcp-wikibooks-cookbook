@@ -12,6 +12,7 @@
 import { z } from "zod";
 import { invalidInput } from "../errors.js";
 import type { CookbookClient } from "../wikibooks/client.js";
+import { strictInput } from "./arguments.js";
 import { ok, renderResults, searchResultSchema, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -22,7 +23,7 @@ export const listRecipesDescription = [
   "Use search_recipes instead when there is a dish name to look up.",
 ].join(" ");
 
-export const listRecipesInput = z.object({
+export const listRecipesInput = strictInput({
   cuisine: z
     .string()
     .max(80)

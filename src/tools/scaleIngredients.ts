@@ -16,13 +16,14 @@ import {
   toScaledIngredientOut,
   toToolError,
 } from "./shared.js";
+import { strictInput } from "./arguments.js";
 import type { ToolResult } from "./shared.js";
 
 export const scaleIngredientsDescription = [
   "Rescale a list of English ingredient lines. This contacts no website and works on a list from anywhere, including one the user pasted in.",
   "Give either 'factor' directly, or 'from_servings' and 'to_servings' and the factor is computed.",
   "Grams, millilitres, ounces and pounds are multiplied and rounded to what a scale can show; a quantity that would fall below one is moved to a smaller unit first, so it never rounds away to nothing.",
-  "Countable things land where a kitchen can follow, and what decides is the content rather than the container: a can, a jar, a packet, a sheet of gelatine, a clove or a spoon lands on a half, because half of one pours, weighs or cuts. An egg, a yolk or a white lands on a whole one, since half of it would have to be beaten and weighed, which is what stops an answer like '2.4 eggs'.",
+  "Countable things land where a kitchen can follow, and what decides is the content rather than the container: a can, a packet, a sheet of gelatine or a spoon lands on a half, because half of one pours, weighs or cuts. An egg, a yolk, a white, a zest or a whole clove lands on a whole one, since there is no half of it to measure out, which is what stops an answer like '2.4 eggs'. A bottle, a jar, a block and a slice go one step further, to the quarter, as a whole food a knife shares out does.",
   "An approximate measure is scaled as a count, so a pinch taken from 6 servings to 25 is 4 pinches; the note gives the everyday equivalence, and the quantity stays in the unit the line used. That covers the gestures, such as a pinch, a dash, a glug or a handful, and anything named after what holds it, such as a capful or a spoonful.",
   "A line with no quantity at all comes back untouched and flagged.",
   "A bracketed equivalent, as in '450 g (1 pound)', is scaled with the amount it restates rather than left to contradict it, and so is one written after a slash, as in '500 g / 1.1 lb'.",
@@ -30,7 +31,7 @@ export const scaleIngredientsDescription = [
   "Prefer this over doing the arithmetic yourself.",
 ].join(" ");
 
-export const scaleIngredientsInput = z.object({
+export const scaleIngredientsInput = strictInput({
   ingredients: z
     .array(z.string().max(300))
     .min(1)

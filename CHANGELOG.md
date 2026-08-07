@@ -2,46 +2,30 @@
 
 ## 1.1.0
 
-- A counted container is divided by what it holds rather than by what holds it. A can, a jar, a
-  packet, a package, a sheet of gelatine, a leaf and a sprig were classed as indivisible and
-  came back whole whatever the factor: "1 can tomatoes" taken to two fifths read "1 can
-  tomatoes", two and a half times the tomatoes the share called for. Half of each of those can
-  be poured, weighed or cut out and the rest kept, so they now land on a half, as a clove of
-  garlic already did.
-- What stays whole is what half of cannot be measured out at all. The egg is the case that
-  names the rule, together with the yolk and the white, and it is unchanged: "3 eggs" taken
-  from six servings to twenty-five is 13 eggs.
-- "ea" counts pieces without saying anything about them, so the item standing beside it decides
-  how far the count divides. "12 ea. egg yolks" is still counted whole.
-- The floor a shrinking line is clamped up to follows the same rule: a quarter for produce a
-  knife divides, a half for a container or a clove, one whole for an egg. A packet halved
-  therefore reads "1/2 packet" instead of being rounded back up to one.
+- Refuse an argument the schema does not declare, rather than dropping it in
+  silence. A caller who misspells one was answered from the defaults as though
+  the call had been understood. The refusal names the argument, suggests the real
+  one when it is close, and lists what the tool takes.
 
-- Ingredients written as a `wikitable` are read: the amount comes from whichever of the Count,
-  Volume and Weight columns the row fills, and a baker's percentage column is left out of it.
-- A rescale of a page that yielded no quantities reports no factor and says the page delivered
-  none, rather than announcing a multiplication over an empty list.
-- A count of eggs, yolks or whites lands on a whole number, and a rounded line says which way
-  it moved. A clove of garlic still halves.
-- An approximate measure is scaled as a count: "a pinch" taken from six servings to twenty-five
-  is four pinches, with the everyday equivalence in the note rather than in the quantity.
-- A measure named after what holds it is read from the word itself: the -ful suffix means "as
-  much as one of these holds", so a capful, a spoonful or a jarful is scaled as a count in the
-  same way as a pinch, and a container that has never come up is understood the first time it
-  appears. The gestures a name says nothing about the size of, such as a glug, a dollop, a
-  squeeze or a grating, are carried in the vocabulary alongside the pinch and the dash.
-- A line stating a share of one thing takes the article with the share: "2/3 of a bottle of
-  orange blossom water" scaled sixfold reads "4 bottles of orange blossom water", with the
-  plural on the thing being counted rather than on the last word of the line.
-- A fraction spelled out is read like one written in figures, so "half a bottle", "half of a
-  bottle" and "two thirds of a cup" all carry an amount, and the unit standing behind the
-  article is found: "half a teaspoon salt" tripled is "1.5 teaspoons salt". A share of a thing
-  named elsewhere, as in "half of the dough", carries no amount of its own and is left as
-  published.
-- `search_recipes` says how many rows matched inside the page rather than in the title, because
-  the Cookbook links to dishes it does not hold.
-- Names of food that take no plural, such as broccoli, and those whose plural is irregular, such
-  as potato, keep their spelling when a count is rewritten.
+- Rewrite the rule that decides how far a counted thing can be divided. It read
+  the packaging, so a can of tomatoes was never halved although half a can of
+  apricots in syrup is poured out and the rest kept. What decides is the size of
+  one unit against what a recipe puts in: a shrimp, a mussel, a peppercorn is
+  already a portion, counted by the dozen, and a smaller recipe puts one fewer in
+  the pan; a leg of lamb, a camembert, a pineapple is asked for by the one and
+  shared out with a knife. An egg, a yolk and a white stay whole, since halving
+  one means beating it and weighing the result. A juice stops at the half.
+
+- Tell the two cloves apart. The word names the garlic clove, which a recipe
+  counts by the four and divides, and the clove spice, which stays whole; the
+  line itself says which one it is.
+
+- Read a dozen as the twelve it stands for, and tell a chicken egg from a chicken
+  breast from the bird, which one word names and which divide differently.
+
+- Agree a counted noun with the number that precedes it in more places. The
+  -ves to -f rule applied to every word, so four whole cloves came back as
+  "1 whole clof".
 
 ## 1.0.0
 

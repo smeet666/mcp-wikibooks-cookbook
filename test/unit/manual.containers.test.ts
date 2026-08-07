@@ -28,7 +28,8 @@ describe("a container is divided by what it holds", () => {
       "1 jar honey",
       "1 sheet gelatin",
       "1 sprig thyme",
-      "1 bottle cider",
+      // A bottle and a block hold enough that a quarter of one is a portion,
+      // and they are checked against that floor in scale.divisibility.
     ]) {
       expect(scale(line, 0.5).amount, line).toBe(0.5);
     }

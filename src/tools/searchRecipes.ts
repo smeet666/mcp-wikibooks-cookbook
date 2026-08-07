@@ -9,6 +9,7 @@
 
 import { z } from "zod";
 import type { CookbookClient } from "../wikibooks/client.js";
+import { strictInput } from "./arguments.js";
 import { ok, renderResults, searchResultSchema, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
@@ -21,7 +22,7 @@ export const searchRecipesDescription = [
   "Every row carries an 'id', which get_recipe takes.",
 ].join(" ");
 
-export const searchRecipesInput = z.object({
+export const searchRecipesInput = strictInput({
   query: z
     .string()
     .min(1)
