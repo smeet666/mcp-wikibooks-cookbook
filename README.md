@@ -91,7 +91,7 @@ juice of a lemon is taken
 by squeezing half the fruit, and a quarter of one has to be poured out and measured back.
 
 **A word naming two foods is read on the line that writes it.** `clove` is the wedge broken off
-a bulb when the line names garlic, and a knife takes that to a quarter; on its own, or written
+a bulb when the line names garlic, and a knife splits that in two; on its own, or written
 `whole cloves`, it is the dried flower bud dropped into the pot and fished back out, and a count
 of those lands on a whole number.
 

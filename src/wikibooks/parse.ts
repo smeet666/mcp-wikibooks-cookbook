@@ -11,6 +11,7 @@ import type { NutritionFacts, PageSummary, RecipePage } from "../types.js";
 import { isCookbookKey, pageUrl } from "./urls.js";
 import {
   findTemplates,
+  decodeEntities,
   flattenWikitext,
   listItems,
   parseTables,
@@ -86,21 +87,6 @@ export function cleanExcerpt(value: unknown): string | null {
     .replace(/\s+/g, " ")
     .trim();
   return text === "" ? null : text;
-}
-
-function decodeEntities(text: string): string {
-  const named: Record<string, string> = {
-    "&amp;": "&",
-    "&lt;": "<",
-    "&gt;": ">",
-    "&quot;": '"',
-    "&apos;": "'",
-    "&nbsp;": " ",
-  };
-  return text
-    .replace(/&#(\d+);/g, (_m, code) => String.fromCodePoint(Number(code)))
-    .replace(/&#x([0-9a-f]+);/gi, (_m, code) => String.fromCodePoint(Number.parseInt(code, 16)))
-    .replace(/&[a-z]+;/gi, (entity) => named[entity.toLowerCase()] ?? entity);
 }
 
 /** The thumbnail address, made absolute: the gateway gives it protocol-relative. */

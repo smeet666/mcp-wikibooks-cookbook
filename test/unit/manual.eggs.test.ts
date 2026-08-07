@@ -22,9 +22,12 @@ describe("a count of eggs", () => {
   });
 
   it("says which way the count moved", () => {
-    expect(scale("3 eggs", 25 / 6).note).toBe("Rounded up from 12 1/2.");
-    expect(scale("5 eggs", 0.5).note).toBe("Rounded up from 2 1/2.");
-    expect(scale("5 eggs", 0.45).note).toBe("Rounded down from 2 1/4.");
+    // The note quotes the exact product in decimals. A kitchen fraction is
+    // snapped to the nearest one a measuring set carries, which would print the
+    // figure the line was compared against as a different number.
+    expect(scale("3 eggs", 25 / 6).note).toBe("Rounded up from 12.5.");
+    expect(scale("5 eggs", 0.5).note).toBe("Rounded up from 2.5.");
+    expect(scale("5 eggs", 0.45).note).toBe("Rounded down from 2.25.");
   });
 
   it("holds for yolks and for whites", () => {

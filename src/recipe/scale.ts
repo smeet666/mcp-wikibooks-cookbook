@@ -14,7 +14,7 @@
  */
 
 import { formatAmount, parseIngredient } from "./quantity.js";
-import type { Measure, ParsedIngredient } from "./quantity.js";
+import type { HeldBack, Measure, ParsedIngredient } from "./quantity.js";
 import type { Divisibility, UnitInfo } from "./units.js";
 import {
   EMBEDDED_MEASURE,
@@ -203,8 +203,24 @@ function stepDownSpoon(unit: UnitInfo, reference: number): { unit: UnitInfo; rat
   return { unit: current, ratio };
 }
 
-/** The largest gap that still counts as landing on the exact product. */
+/**
+ * How close a result has to be to the exact product to be called exact.
+ *
+ * Two tests, because one of them alone is wrong at some scale. An absolute gap
+ * of a hundredth is beneath what a kitchen resolves at ordinary sizes, and at a
+ * hundredth of a millilitre it is the whole quantity: 0.006 rounded to 0.01 sits
+ * inside the absolute gap while being two thirds larger than what was asked for.
+ * A share of half a percent catches that without calling ordinary rounding
+ * inexact.
+ */
 const EXACT_WITHIN = 0.01;
+const EXACT_SHARE = 0.005;
+
+function landedExactly(exact: number, amount: number): boolean {
+  const gap = Math.abs(exact - amount);
+  if (gap > EXACT_WITHIN) return false;
+  return exact === 0 || gap / Math.abs(exact) <= EXACT_SHARE;
+}
 
 export interface ScaleOptions {
   /** Multiplier applied to the quantities. */
@@ -229,10 +245,6 @@ interface ScaledMeasure {
 /**
  * Scale one measure, both ends of a range together.
  *
- * The unit is chosen once, from the largest bound, and applied to every bound.
- * Choosing per bound is what turns "½ to 1 pound" into the unreadable "13 oz to
- * 1.5 pounds", where the second number looks smaller than the first.
- *
  * A measurement walks down to a smaller unit before it is rounded, so a
  * quantity divided a thousandfold never rounds to zero and states that the
  * recipe needs none of it.
@@ -246,17 +258,37 @@ function scaleMeasure(
 ): ScaledMeasure {
   const raws = high === null ? [low * factor] : [low * factor, high * factor];
   const sources = high === null ? [low] : [low, high];
-  const reference = raws[raws.length - 1]!;
+  /**
+   * The unit is chosen from the smaller end of a range.
+   *
+   * Both ends have to share one unit, or "½ to 1 pound" comes back as "13 oz to
+   * 1.5 pounds", where the second number reads smaller than the first. Of the
+   * two, the smaller end is the one a unit can ruin: choosing from the larger
+   * turns "450 to 1000 g" into "0.45 to 1 kg", and pushed one step further it
+   * rounds the small end away entirely. A large number in a small unit is
+   * merely long to read.
+   */
+  const positive = raws.filter((raw) => raw > 0);
+  const reference = positive.length > 0 ? Math.min(...positive) : raws[0]!;
 
   /** Both bounds share one unit, and each keeps the precision that unit affords. */
   const inUnit = (target: UnitInfo, ratio: number): ScaledMeasure => ({
-    bounds: raws.map((raw) => {
+    bounds: raws.map((raw, index) => {
       const exact = raw * ratio;
-      const rounded = roundMeasured(exact);
+      // The rounding happens in the smaller of the two units, so moving to a
+      // bigger one never throws away precision the page wrote: 1666 g rounded
+      // as kilos is 1.7, and rounded as grams it is the 1.665 kg a scale shows.
+      const rounded =
+        ratio < 1 ? Number((roundMeasured(raw) * ratio).toPrecision(12)) : roundMeasured(exact);
+      // At the bottom of a ladder, keep what precision is left rather than
+      // deleting the ingredient.
+      const usable = rounded === 0 && exact > 0 ? Number(exact.toPrecision(2)) : rounded;
+      // Rounding to a step of five grams above a hundred can round upwards, and
+      // a recipe being made smaller must never come out asking for more than
+      // the page published.
+      const ceiling = factor < 1 ? sources[index]! * ratio : Number.POSITIVE_INFINITY;
       return {
-        // At the bottom of a ladder, keep what precision is left rather than
-        // deleting the ingredient.
-        amount: rounded === 0 && exact > 0 ? Number(exact.toPrecision(2)) : rounded,
+        amount: Math.min(usable, ceiling),
         exact,
         clamped: false,
         raw,
@@ -361,10 +393,10 @@ const HALVED_CUT = /\b(breasts?|thighs?|drumsticks?|wings?|cutlets?|escalopes?)\
  * How far a "clove" divides, when a line counts one.
  *
  * The word names two foods that answer the question in opposite ways. A clove
- * of garlic is a wedge broken off a bulb, and a quarter of one is what a knife
- * scrapes into a pan. A clove on its own is the dried flower bud, dropped into
- * the pot and fished back out of it: nothing about it is measured, so there is
- * no share of one to take.
+ * of garlic is a wedge broken off a bulb, and the share of one a recipe asks
+ * for is the half a knife makes of it. A clove on its own is the dried flower
+ * bud, dropped into the pot and fished back out of it: nothing about it is
+ * measured, so there is no share of one to take.
  *
  * Garlic named in the line is what separates the two, and that is how the great
  * majority of lines writing the word say which food they mean.
@@ -377,7 +409,7 @@ const HALVED_CUT = /\b(breasts?|thighs?|drumsticks?|wings?|cutlets?|escalopes?)\
 function cloveDivisibility(unit: UnitInfo | null, item: string): Divisibility | null {
   const counted = unit ? unit.canonical === "clove" : /\bcloves?\b/i.test(item);
   if (!counted) return null;
-  return /\bgarlic\b/i.test(item) ? "quarter" : "whole";
+  return /\bgarlic\b/i.test(item) ? "half" : "whole";
 }
 
 function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
@@ -669,11 +701,24 @@ function scaleAlternative(
   return { text: scaleIngredient(tail, options).text, rewritten: true };
 }
 
+/** Why a line showing a figure came back as the page published it. */
+const HELD_BACK_NOTE: Record<HeldBack, string> = {
+  sizeQualifier:
+    "The figures here give the size of one item rather than how many, so the line is " +
+    "left as published.",
+  perPerson:
+    "This line already states an amount for one person, and the factor is what changes " +
+    "how many people the recipe serves, so the line is left as published.",
+  ambiguousDecimal:
+    "The comma in this number marks thousands in one convention and the decimal point in " +
+    "another, and the line gives no sign which was meant, so it is left as published.",
+};
+
 function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient {
   const { factor } = options;
   const parsed = parseIngredient(line);
 
-  if (parsed.amount === null) {
+  if (parsed.amount === null || parsed.heldBack) {
     return {
       text: parsed.original,
       original: parsed.original,
@@ -681,7 +726,9 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
       amount: null,
       amountMax: null,
       unit: null,
-      note: "No quantity given; adjust to taste.",
+      note: parsed.heldBack
+        ? HELD_BACK_NOTE[parsed.heldBack]
+        : "No quantity given; adjust to taste.",
     };
   }
 
@@ -691,8 +738,8 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
 
   const primaryBounds = primary.bounds;
   const alternateBounds = alternates.flatMap((entry) => entry.bounds);
-  const movedPrimary = primaryBounds.some((b) => Math.abs(b.exact - b.amount) > EXACT_WITHIN);
-  const movedAlternate = alternateBounds.some((b) => Math.abs(b.exact - b.amount) > EXACT_WITHIN);
+  const movedPrimary = primaryBounds.some((b) => !landedExactly(b.exact, b.amount));
+  const movedAlternate = alternateBounds.some((b) => !landedExactly(b.exact, b.amount));
   const clamped = [...primaryBounds, ...alternateBounds].find((bound) => bound.clamped) ?? null;
   // Two figures beside each other agree only as closely as the page wrote
   // them, and multiplying both keeps that gap rather than closing it.
@@ -704,16 +751,23 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
   const shown = high?.amount ?? low.amount;
   const asText = (value: number) => formatAmount(value, { fractions: unit?.kind !== "measured" });
 
+  // A range whose two ends land on the same amount stopped being a range. "1 to
+  // 1 clove" is not something a cook reads, so the line states the one amount
+  // both ends came to.
+  const collapsed = high !== null && high.amount === low.amount;
   const amountText = renderRange(
     asText(low.amount),
-    high === null ? null : asText(high.amount),
+    high === null || collapsed ? null : asText(high.amount),
     parsed.rangeSeparator,
   );
   // "ea" announces that the figure counts pieces, and names no measure of them,
   // so the line reads as the count of the thing itself and the marker has
   // nothing to say in it.
   const named = unit && !countsBarePieces(unit) ? unit : null;
-  const unitLabel = named ? ` ${formatUnit(named, shown)}` : "";
+  // The size word the page put in front of its measure goes back in front of
+  // it: the page asked for a small handful, and a handful is not the same ask.
+  const adjective = named && parsed.measureAdjective ? ` ${parsed.measureAdjective}` : "";
+  const unitLabel = named ? `${adjective} ${formatUnit(named, shown)}` : "";
   const alternateTexts = alternates.map((entry) => entry.text);
   // Equivalents go back the way the line offered them: inside brackets, or
   // after a slash beside the amount they restate.
@@ -728,55 +782,112 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
   const itemLabel = item ? ` ${item}` : "";
 
   const result: ScaledIngredient = {
-    text: `${amountText}${unitLabel}${altLabel}${itemLabel}`.trim(),
+    text: `${parsed.approximation ?? ""}${amountText}${unitLabel}${altLabel}${itemLabel}`.trim(),
     original: parsed.original,
     scaling: movedPrimary || movedAlternate || restated ? "rounded" : "scaled",
     amount: low.amount,
-    amountMax: high?.amount ?? null,
+    amountMax: collapsed ? null : (high?.amount ?? null),
     unit: named?.canonical ?? null,
   };
 
+  /**
+   * The exact product, written for a note.
+   *
+   * Decimals rather than kitchen fractions: this number exists to be compared
+   * against the one on the line, and a fraction snapped from 0.32 to "1/3"
+   * reads as the exact product while being a different number.
+   */
   const asPublished = (value: number, source: UnitInfo | null) =>
-    `${formatAmount(Math.round(value * 100) / 100, { fractions: source?.kind !== "measured" })}${
+    `${formatAmount(Math.round(value * 1000) / 1000, { fractions: false })}${
       source ? ` ${formatUnit(source, value)}` : ""
     }`;
 
+  const sentences: string[] = [];
+
   if (clamped) {
-    result.note =
+    sentences.push(
       `Clamped up to ${formatAmount(clamped.amount)} from ` +
-      `${formatAmount(Math.round(clamped.raw * 1000) / 1000)}, the smallest amount worth ` +
-      "measuring. This line no longer holds its share of the recipe.";
+        `${formatAmount(Math.round(clamped.raw * 1000) / 1000)}, the smallest amount worth ` +
+        "measuring. This line no longer holds its share of the recipe.",
+    );
   } else if (movedPrimary) {
-    // Name the bound that actually moved: on a range it is usually the upper
-    // one, and quoting the lower one sends a cook checking arithmetic that was
-    // exact. The direction goes with it, so a cook reading the note knows
-    // whether the line now holds a little more of the ingredient or a little
-    // less.
-    const moved = primaryBounds.find((b) => Math.abs(b.exact - b.amount) > EXACT_WITHIN)!;
-    const direction = moved.amount > moved.exact ? "up" : "down";
-    result.note = `Rounded ${direction} from ${asPublished(moved.raw, parsed.unit)}.`;
-  } else if (EMBEDDED_MEASURE.test(parsed.item)) {
-    // A line can offer a substitute with its own amount, as in "1 Tbsp vanilla
-    // sugar OR 1 tsp vanilla extract". Only the amount the line opens with is
-    // scaled, and a substitute left at its published size would contradict it.
-    result.note =
-      "This line carries a further quantity after the first one, and only the first was scaled. " +
-      "Read the rest as published.";
+    // Every bound that moved is named, with the direction it moved in. On a
+    // range the two ends can move opposite ways, and reporting one of them as
+    // though it spoke for both states the wrong direction for half the
+    // quantity.
+    const moved = primaryBounds.filter((bound) => !landedExactly(bound.exact, bound.amount));
+    sentences.push(
+      moved
+        .map(
+          (bound) =>
+            `Rounded ${bound.amount > bound.exact ? "up" : "down"} from ` +
+            `${asPublished(bound.raw, parsed.unit)}.`,
+        )
+        .join(" "),
+    );
   } else if (movedAlternate) {
     // The amount itself came out exact, and only the equivalent beside it had
     // to move. Saying "rounded from 300 g" when 300 g is exact would send a
     // cook looking for an error that is not there.
-    result.note = `The amount is exact; the equivalent ${
-      restated ? "beside it" : "in brackets"
-    } was rounded to stay readable.`;
+    sentences.push(
+      `The amount is exact; the equivalent ${
+        restated ? "beside it" : "in brackets"
+      } was rounded to stay readable.`,
+    );
   } else if (restated) {
-    result.note =
+    sentences.push(
       "This line states one quantity twice, and both readings were scaled. " +
-      "They agree as closely as the page wrote them, and no closer.";
+        "They agree as closely as the page wrote them, and no closer.",
+    );
   }
+
+  // A line can offer a substitute with its own amount, as in "1 Tbsp vanilla
+  // sugar OR 1 tsp vanilla extract". Only the amount the line opens with is
+  // scaled, and a substitute left at its published size contradicts it. This is
+  // said whatever else happened to the line: a line that was also rounded is the
+  // one where a stale second quantity is hardest to spot.
+  if (EMBEDDED_MEASURE.test(parsed.item)) {
+    sentences.push(
+      "This line carries a further quantity after the first one, and only the first was scaled. " +
+        "Read the rest as published.",
+    );
+  }
+
+  if (collapsed) {
+    sentences.push("The page gave a range, and at this size both ends come to the same amount.");
+  }
+
+  // Below what any scale shows, the arithmetic is right and the kitchen cannot
+  // follow it. Saying so is the difference between an answer and a number.
+  if (unit?.kind === "measured" && low.amount > 0 && low.amount < 0.05) {
+    sentences.push(
+      "This is smaller than a kitchen scale resolves. Make a larger batch, or measure it by eye.",
+    );
+  }
+
+  // The page put the amount forward as loose, and multiplying it keeps it that
+  // way: the answer is as approximate as the figure it came from.
+  if (parsed.approximation) {
+    sentences.push(
+      "The page gave this amount as an approximation, and the scaled figure is no firmer.",
+    );
+  }
+
+  if (sentences.length > 0) result.note = sentences.join(" ");
 
   if (parsed.unit && parsed.unit.kind === "approximate") {
     result.note = withApproximateNote(parsed.unit, result.note);
+  }
+
+  // A line that wrote its amount as a word says which word it was, so a caller
+  // can see the figure came from the grammar rather than from a digit.
+  if (parsed.articleWord) {
+    // `amount` carries the product once a word such as "dozen" has multiplied
+    // it, and quoting that back would credit the article with a figure it never
+    // gave.
+    const stood = (parsed.amount ?? 0) / (parsed.countMultiplier ?? 1);
+    const read = `"${parsed.articleWord}" read as ${formatAmount(stood)}.`;
+    result.note = result.note ? `${read} ${result.note}` : read;
   }
 
   return result;
@@ -845,15 +956,17 @@ export function scaleIngredients(lines: string[], options: ScaleOptions): Scaled
 export function passthroughIngredient(line: string): ScaledIngredient {
   const parsed = parseIngredient(line);
 
+  const held = parsed.amount === null || parsed.heldBack !== null;
   const result: ScaledIngredient = {
     text: parsed.original,
     original: parsed.original,
-    scaling: parsed.amount === null ? "unscaled" : "scaled",
-    amount: parsed.amount,
-    amountMax: parsed.amountMax,
-    unit: parsed.unit?.canonical ?? null,
+    scaling: held ? "unscaled" : "scaled",
+    amount: held ? null : parsed.amount,
+    amountMax: held ? null : parsed.amountMax,
+    unit: held ? null : (parsed.unit?.canonical ?? null),
   };
-  if (parsed.amount === null) result.note = "No quantity given; adjust to taste.";
+  if (parsed.heldBack) result.note = HELD_BACK_NOTE[parsed.heldBack];
+  else if (parsed.amount === null) result.note = "No quantity given; adjust to taste.";
   else if (parsed.unit?.kind === "approximate") {
     result.note = withApproximateNote(parsed.unit, undefined);
   }

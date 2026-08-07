@@ -187,10 +187,65 @@ export function flattenWikitext(source: string): string {
   // Bold and italic are three, four or five apostrophes around the word.
   text = text.replace(/'{2,5}/g, "");
 
+  // A page writes a character it cannot type as an HTML entity, and the wiki
+  // renders it as that character. "3&frac12; cups" is three and a half cups on
+  // the page, so the flattened line has to say so too: left encoded, the half
+  // reads as part of the ingredient's name and the quantity is short by one.
+  text = decodeEntities(text);
+
   return text
     .replace(/[ \t]+/g, " ")
     .replace(/ +\n/g, "\n")
     .trim();
+}
+
+/**
+ * Named HTML entities a page writes where the character itself would do.
+ *
+ * The fractions are the ones that carry meaning: a page reading "3&frac12;
+ * cups" shows three and a half cups to whoever visits it, and a flattened line
+ * that keeps the entity says three.
+ */
+const NAMED_ENTITIES: Record<string, string> = {
+  frac12: "½",
+  frac13: "⅓",
+  frac23: "⅔",
+  frac14: "¼",
+  frac34: "¾",
+  frac15: "⅕",
+  frac18: "⅛",
+  nbsp: " ",
+  amp: "&",
+  lt: "<",
+  gt: ">",
+  quot: '"',
+  apos: "'",
+  deg: "°",
+  times: "×",
+  minus: "−",
+  ndash: "–",
+  mdash: "—",
+};
+
+/** Turn HTML entities back into the characters the wiki renders them as. */
+export function decodeEntities(text: string): string {
+  return text
+    .replace(/&#x([0-9a-f]+);/gi, (whole, hex: string) => codePoint(parseInt(hex, 16), whole))
+    .replace(/&#(\d+);/g, (whole, digits: string) => codePoint(Number(digits), whole))
+    .replace(
+      /&([a-z][a-z0-9]*);/gi,
+      (whole, name: string) => NAMED_ENTITIES[name.toLowerCase()] ?? whole,
+    );
+}
+
+/** A code point a page named, or the entity as published when it names none. */
+function codePoint(value: number, published: string): string {
+  if (!Number.isInteger(value) || value < 32 || value > 0x10ffff) return published;
+  try {
+    return String.fromCodePoint(value);
+  } catch {
+    return published;
+  }
 }
 
 /** Drop the leading `Cookbook:` or `w:` from a link target used as its own label. */

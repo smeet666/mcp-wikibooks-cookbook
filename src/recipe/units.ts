@@ -147,6 +147,11 @@ const UNITS: Record<string, UnitInfo> = {
   leaf: { canonical: "leaf", kind: "portioned", system: "none", plural: "leaves" },
   leaves: { canonical: "leaf", kind: "portioned", system: "none", plural: "leaves" },
   ea: { canonical: "ea", kind: "portioned", system: "none", symbol: true },
+  // A dish of the book standing as an ingredient of another: "1 recipe Flaky
+  // Pie Crust". The count is what the word measures, so the plural mark belongs
+  // on it and not on the name of the dish.
+  recipe: { canonical: "recipe", kind: "portioned", system: "none", plural: "recipes" },
+  recipes: { canonical: "recipe", kind: "portioned", system: "none", plural: "recipes" },
 
   // Held to no better than a hand: the count scales, the size of one does not.
   // See `readContainerLoad` for what puts a word here.
@@ -215,7 +220,16 @@ export function approximateEquivalent(unit: UnitInfo): string | null {
  * were an indivisible object.
  */
 export function normalizeUnitKey(text: string): string {
-  return text.toLowerCase().replace(/\./g, " ").replace(/\s+/g, " ").trim();
+  return (
+    text
+      .toLowerCase()
+      .replace(/\./g, " ")
+      // A recipe that does not know how many it will be writes the plural mark
+      // in brackets: "2 tablespoon(s) sugar". The unit is the word without it.
+      .replace(/\((?:s|x|es)\)/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
 }
 
 /** Longest keys first, so "fluid ounce" wins over "ounce". */

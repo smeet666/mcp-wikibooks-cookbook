@@ -84,9 +84,11 @@ describe("scaleIngredient, ranges", () => {
   });
 
   it("puts both ends of a range in one unit", () => {
+    // The unit comes from the lower bound, which is the end a large unit ruins:
+    // chosen from the upper one, half a pound would come back as "0.83".
     const result = scale("½–1 pound butter", 5 / 3);
-    expect(result.unit).toBe("pound");
-    expect(result.text).toBe("0.83–1.7 pounds butter");
+    expect(result.unit).toBe("ounce");
+    expect(result.text).toBe("13–27 ounces butter");
   });
 
   it("keeps a range written in words readable", () => {

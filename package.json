@@ -1,6 +1,6 @@
 {
   "name": "mcp-wikibooks-cookbook",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "MCP server for the Wikibooks Cookbook. Search recipes, read ingredients and steps, and rescale quantities without ending up with 2.4 eggs. No API key required.",
   "keywords": [
     "mcp",

@@ -211,7 +211,7 @@ describe("scaling a whole page", () => {
     const lines = await noodlesAt(3);
     const yolks = lines.find((line) => /yolk/.test(line.original)) as ScaledLine;
     expect(yolks.amount).toBe(3);
-    expect(yolks.note).toBe("Rounded up from 2 1/2.");
+    expect(yolks.note).toBe("Rounded up from 2.5.");
   });
 
   it("never leaves a fractional count that is neither whole nor half", async () => {

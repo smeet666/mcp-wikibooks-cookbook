@@ -46,8 +46,10 @@ describe("a portion cut off a bird or a joint stops at the half", () => {
 });
 
 describe("a clove is the bud or the wedge of garlic, by what the line says", () => {
-  it("takes a quarter of a clove of garlic", () => {
-    expect(scale("1 clove garlic, minced", 0.25).amount).toBe(0.25);
+  // The cook who uses these recipes settled how far a clove goes: it is split
+  // in two and no finer.
+  it("takes a half of a clove of garlic", () => {
+    expect(scale("1 clove garlic, minced", 0.25).amount).toBe(0.5);
     expect(scale("4 cloves garlic, minced", 0.25).text).toBe("1 clove garlic, minced");
   });
 
