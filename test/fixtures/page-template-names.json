@@ -1,0 +1,15 @@
+{
+  "id": 102,
+  "key": "Cookbook:Orchard_Compote",
+  "title": "Cookbook:Orchard Compote",
+  "latest": {
+    "id": 6,
+    "timestamp": "2026-01-03T03:03:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "{{recipesummary|category=Sweet recipes|servings=4|difficulty=1}}\n{{recipe}}\n\nAn '''orchard compote''' is stewed slowly and eaten cold.\n\n== Ingredients ==\n* 500 [[Cookbook:Gram|g]] fresh {{cb|late fruit}}\n* 2 [[Cookbook:Tablespoon|tablespoons]] {{cb|pale sugar}}\n* {{orchard note|stir once}}\n\n== Procedure ==\n# Stew the fruit with the sugar until it falls apart."
+}

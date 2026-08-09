@@ -96,7 +96,8 @@ a bulb when the line names garlic, and a knife splits that in two; on its own, o
 of those lands on a whole number.
 
 **A shrinking line keeps the smallest share still worth measuring.** A knife takes an onion to a
-quarter; a can or a packet goes to a half; an egg stops at one. Under that floor the
+quarter; a can or a packet goes to a half; an egg stops at one; a spoon walked down to the
+smallest one a measuring set carries stops at a quarter of it. Under that floor the
 amount is clamped up and the line says it no longer holds its share of the recipe.
 
 **A measurement moves to a smaller unit before it is rounded.** A quantity that would fall below
@@ -141,10 +142,13 @@ Every line comes back in one shape:
 `scaling` carries the honesty of the tool:
 
 - `scaled` — the arithmetic was exact.
-- `rounded` — a countable thing was moved to a whole or a half, or a measurement was demoted to
-  a smaller unit to stay usable.
+- `rounded` — a countable thing was moved to the smallest share a cook takes out of one of it, a
+  whole, a half or a quarter, or a measurement was demoted to a smaller unit to stay usable.
 - `unscaled` — the line carries nothing that can be multiplied, so it was left as published and
   flagged.
+
+A line read off a page carries two more fields: `group`, naming the part of the dish it is for,
+and `variant`, naming the alternative list it came from.
 
 ## Reading a page
 
@@ -175,10 +179,10 @@ Read one page, optionally rescaled.
 | `servings`              | integer 1–500 | —       | Rescale the ingredients to this many                                |
 | `max_description_chars` | integer       | 1200    | Ceiling on the introduction                                         |
 
-Returns `{ id, title, url, yield, ingredients, equipment, steps, tips, prep_minutes,
-cook_minutes, total_minutes, time_text, category, categories, difficulty, difficulty_max,
-energy, author, rating, nutrition, description, attribution, license, revised_at, source,
-notes }`.
+Returns `{ id, title, url, redirected_from, yield, ingredients, equipment, steps, tips,
+prep_minutes, cook_minutes, total_minutes, time_text, time_phases, category, categories, difficulty,
+difficulty_max, energy, author, rating, nutrition, description, attribution, license,
+revised_at, source, notes }`.
 
 `yield` is `{ original_count, original_text, requested, unit, factor }`. `original_text` keeps
 the page's own wording, because "4 to 6" and "4" are different claims. Rescaling needs a stated
@@ -187,6 +191,33 @@ yield: a page that publishes none comes back as published, and says so.
 Ingredients are read from a bulleted list and from a table alike. Where a page lays them out as
 a `wikitable`, the amount comes from whichever of the Count, Volume and Weight columns the row
 fills, and a baker's percentage column is left out of it.
+
+A page that groups its ingredients under sub-headings, a cake and its soak and its glaze, states
+the group on every line as `group`; a page that lists them flat states `null`. Reading the group
+is what tells two identical lines apart: a recipe can ask for two tablespoons of rum in each of
+its parts, and the list is only a repeat if the group is thrown away.
+
+A page offering several versions of the same dish writes them the same way, under
+`=== Variation I ===` and its neighbours, and those lists replace one another: one of them is
+used, even where the procedure says to mix all the ingredients. Each line says which list it came
+from as `variant`, `null` for the list the recipe states for itself, and a note names the
+alternatives the page carries.
+
+An amount written as a conversion template is read as the value and the unit the page wrote:
+`180 °C`, `225 g`, `170–225 g`. Nothing is converted between measuring systems, so the
+counterpart such a template computes is left out.
+
+The recipe box holds one field for time, and a page with more than one thing to say fills it with
+labelled phases: a preparation, a fermentation, a rest, a cooking. Each one comes back in
+`time_phases` with the page's own wording, its minutes, and both ends where the page gives a
+range. `prep_minutes` and `cook_minutes` carry the phases the page labels as such.
+`total_minutes` states a total only where the page states one, as a single duration or as a phase
+the page itself calls the total: souring a batter for a day is not cooking, and adding the phases
+would answer with a figure nobody published.
+
+A page whose only content is a redirect is followed to the page it points at. `id` names the page
+that was read, `redirected_from` names the addresses walked to reach it, and a note says so, so a
+caller crediting the recipe links the page that carries it.
 
 `author` and `rating` are always `null`: the Cookbook is written collectively and carries no
 reader score. A time, a difficulty or a nutrition panel the page does not publish is `null`,
@@ -220,6 +251,10 @@ how many recipes exist on the subject. The tool says so in its own notes.
 The Cookbook keeps recipes and reference pages in one namespace, so a search row can be a page
 about an ingredient rather than a recipe using it. Only `get_recipe` can tell them apart, and it
 says when a page carries no ingredient list rather than passing for a recipe with nothing in it.
+A page with no recipe box, no recipe banner and no procedure is answered with empty lists: the
+book's own chapter indexes write "Ingredients" over a column of links, and those links are not a
+shopping list. A page that does read as a recipe and whose list sits under a heading this server
+does not know is told apart from that, and its own headings are named so the list can be found.
 
 A failure is never returned as an empty result. A request that could not be made comes back as
 an error code, because silence about a failure becomes "there is no such recipe" in the mouth of
@@ -417,7 +452,8 @@ réduits d'un quart reviennent en « 18 mushrooms ».
 
 **Une ligne qui rétrécit garde la plus petite part qui vaille encore la peine.** Le couteau mène
 un oignon au quart ; une boîte, un sachet ou une gousse s'arrêtent à la demie ; un œuf s'arrête à
-l'unité. Sous ce plancher, la quantité est remontée et la ligne dit qu'elle ne tient plus sa part
+l'unité ; une cuillère descendue jusqu'à la plus petite d'un jeu de mesures s'arrête à son quart.
+Sous ce plancher, la quantité est remontée et la ligne dit qu'elle ne tient plus sa part
 de la recette.
 
 **Une mesure descend vers une unité plus petite avant d'être arrondie.** Une quantité qui
@@ -463,10 +499,14 @@ Chaque ligne revient dans la même forme :
 `scaling` porte l'honnêteté de l'outil :
 
 - `scaled` — le calcul était exact.
-- `rounded` — un dénombrable a été ramené à un entier ou à une demie, ou une mesure a été
-  descendue vers une unité plus petite pour rester utilisable.
+- `rounded` — un dénombrable a été ramené à la plus petite part qu'on prend sur l'un d'eux, une
+  unité, une demie ou un quart, ou une mesure a été descendue vers une unité plus petite pour
+  rester utilisable.
 - `unscaled` — la ligne ne porte rien de multipliable, elle est laissée telle que publiée et
   signalée.
+
+Une ligne lue sur une page porte deux champs de plus : `group`, qui nomme la partie du plat à
+laquelle elle sert, et `variant`, qui nomme la liste alternative dont elle vient.
 
 ## Lire une page
 
@@ -497,10 +537,10 @@ Lit une page, avec remise à l'échelle facultative.
 | `servings`              | entier 1–500 | —      | Remet les ingrédients à ce nombre de parts                                   |
 | `max_description_chars` | entier       | 1200   | Plafond sur l'introduction                                                   |
 
-Renvoie `{ id, title, url, yield, ingredients, equipment, steps, tips, prep_minutes,
-cook_minutes, total_minutes, time_text, category, categories, difficulty, difficulty_max,
-energy, author, rating, nutrition, description, attribution, license, revised_at, source,
-notes }`.
+Renvoie `{ id, title, url, redirected_from, yield, ingredients, equipment, steps, tips,
+prep_minutes, cook_minutes, total_minutes, time_text, time_phases, category, categories, difficulty,
+difficulty_max, energy, author, rating, nutrition, description, attribution, license,
+revised_at, source, notes }`.
 
 `yield` vaut `{ original_count, original_text, requested, unit, factor }`. `original_text`
 conserve la formulation de la page, parce que « 4 to 6 » et « 4 » ne disent pas la même chose.
@@ -510,6 +550,34 @@ que publiée, et le dit.
 Les ingrédients sont lus aussi bien en liste à puces qu'en tableau. Quand une page les présente
 en `wikitable`, la quantité vient de celle des colonnes Count, Volume et Weight que la ligne
 remplit, et une colonne de pourcentage boulanger est laissée de côté.
+
+Une page qui range ses ingrédients sous des sous-titres, un gâteau puis son sirop puis son
+glaçage, porte ce groupe sur chaque ligne dans `group` ; une page qui les liste à plat y met
+`null`. C'est le groupe qui distingue deux lignes identiques : une recette peut demander deux
+cuillerées de rhum dans chacune de ses parties, et la liste ne devient un doublon que si l'on
+jette le groupe.
+
+Une page qui propose plusieurs versions du même plat les écrit de la même façon, sous
+`=== Variation I ===` et ses voisins, et ces listes se remplacent l'une l'autre : on en utilise
+une seule, même quand la préparation dit de mélanger tous les ingrédients. Chaque ligne indique
+dans `variant` la liste dont elle vient, `null` pour la liste que la recette énonce pour
+elle-même, et une note nomme les alternatives que porte la page.
+
+Une quantité écrite sous forme de modèle de conversion est lue comme la valeur et l'unité que la
+page a écrites : `180 °C`, `225 g`, `170–225 g`. Rien n'est converti d'un système de mesure vers
+un autre, donc l'équivalent que ce modèle calcule est laissé de côté.
+
+L'encadré de recette n'a qu'un champ pour le temps, et une page qui a plusieurs choses à dire y
+met des phases nommées : une préparation, une fermentation, un repos, une cuisson. Chacune revient
+dans `time_phases` avec la formulation de la page, ses minutes, et les deux bornes quand la page
+donne une fourchette. `prep_minutes` et `cook_minutes` portent les phases que la page nomme ainsi.
+`total_minutes` n'annonce un total que là où la page en énonce un, sous forme d'une durée unique
+ou d'une phase que la page appelle elle-même le total : laisser une pâte s'acidifier une journée
+n'est pas une cuisson, et additionner les phases répondrait par un chiffre que personne n'a publié.
+
+Une page dont tout le contenu est une redirection est suivie jusqu'à la page visée. `id` nomme
+la page lue, `redirected_from` nomme les adresses parcourues pour l'atteindre, et une note le
+dit, pour qu'un appelant qui crédite la recette pointe la page qui la porte.
 
 `author` et `rating` valent toujours `null` : le Cookbook s'écrit collectivement et ne porte
 aucune note de lecteur. Un temps, une difficulté ou un tableau nutritionnel que la page ne
@@ -543,7 +611,12 @@ rien du nombre de recettes existant sur le sujet. L'outil le dit dans ses propre
 Le Cookbook garde les recettes et les pages de référence dans un seul espace de noms : une ligne
 de recherche peut donc être une page sur un ingrédient plutôt qu'une recette qui l'emploie. Seul
 `get_recipe` sait les distinguer, et il dit quand une page ne porte pas de liste d'ingrédients
-au lieu de la faire passer pour une recette vide.
+au lieu de la faire passer pour une recette vide. Une page sans encadré de recette, sans bandeau
+et sans procédure revient avec des listes vides : les sommaires du livre écrivent eux aussi
+« Ingredients » au-dessus d'une colonne de liens, et ces liens ne sont pas une liste de courses.
+Une page qui se lit bien comme une recette mais dont la liste est sous un titre que ce serveur
+ne connaît pas est distinguée de la première, et ses propres titres sont nommés pour qu'on
+retrouve la liste.
 
 Un échec n'est jamais renvoyé comme un résultat vide. Une requête qui n'a pas pu être faite
 revient sous forme de code d'erreur, parce que le silence sur un échec devient « cette recette

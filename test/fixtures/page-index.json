@@ -1,0 +1,15 @@
+{
+  "id": 100,
+  "key": "Cookbook:Orchard_Contents",
+  "title": "Cookbook:Orchard Contents",
+  "latest": {
+    "id": 4,
+    "timestamp": "2026-01-01T01:01:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "__NOTOC__\n{{book title|Orchard Cookbook|A collection of recipes from the orchard country.}}\n\n=== Ingredients ===\n* [[Cookbook:Lamp_Oil|Fats & Oils]]\n* [[Cookbook:Late_Fruit|Fruit]]\n* [[Cookbook:Hard_Flour|Cereals & Grains]]\n\n=== Equipment ===\n* [[Cookbook:Cake_Pan|Bakeware]]\n* [[Cookbook:Cookware|Pots & Pans]]"
+}

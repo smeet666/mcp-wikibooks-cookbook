@@ -26,11 +26,18 @@ import type { ToolResult } from "./shared.js";
 export const getRecipeDescription = [
   "Read one Wikibooks Cookbook page: ingredients, equipment, steps, yield, time, difficulty, category, and the nutrition panel when the page carries one.",
   "'id' is the page key from search_recipes or list_recipes, such as 'Cookbook:Spaghetti_alla_Carbonara'. A plain dish name is accepted and the Cookbook namespace is added.",
-  "Pass 'servings' to rescale: a countable thing lands on a half when half of one can be poured, weighed or cut, such as a can or a packet, and on a whole one when it cannot, such as an egg or a whole clove; a measurement is moved to a smaller unit before rounding so nothing disappears; and anything that cannot be multiplied is flagged instead. Read 'scaling' on each ingredient rather than doing the arithmetic yourself.",
+  "Pass 'servings' to rescale: a countable thing lands on the smallest share a cook can take out of one of it, which is a whole one where half of one cannot be measured out at all, such as an egg or a whole clove, a half where half of one pours, weighs or splits, such as a can or a packet, and a quarter where a knife or the size of the thing goes further, such as an onion, a slice of bread or a jar; a measurement is moved to a smaller unit before rounding so nothing disappears; and anything that cannot be multiplied is flagged instead. Read 'scaling' on each ingredient rather than doing the arithmetic yourself.",
+  "A page that groups its ingredients by what they are for, such as a cake and its glaze, states that group on every line; a page that lists them flat states null. Two lines can read alike and belong to different parts of the dish.",
+  "A page offering several versions of the dish states which one each line came from in 'variant'. Those lists replace one another: one of them is used, even where the procedure says to mix all the ingredients.",
+  "A measurement the page writes as a conversion template is read as the value and the unit the page wrote, and the counterpart the template computes is left out: nothing here is converted between measuring systems.",
+  "A line asking for as much as is needed and giving an indication in brackets, such as 'water as required (about 1 ½ cups)', states a quantity: the indication is scaled with the recipe and the wording in front of it is left as the page wrote it. A line offering an alternative in brackets, such as '4 eggs (or 8 egg yolks)', has both branches scaled, since a cook takes one of them.",
+  "The Cookbook keeps recipes and the book's own chapter indexes in one namespace, and both write 'Ingredients' over a bulleted list. A page carrying no recipe box, no recipe banner and no procedure comes back with empty lists and a note: its bullets are links to other pages rather than things to buy.",
+  "A heading owns what is nested under it and stops at the next heading of its own level, so a page carrying two recipes returns the first of each part and names the rest in a note.",
+  "A page that only redirects elsewhere is followed to the page it points at, and 'id' and 'redirected_from' say which page was read.",
   "Rescaling needs a yield to scale from. A page that states none comes back as published, and says so.",
   "A page yielding no quantities is answered with 'factor' 1 and a note: an empty ingredient list was multiplied by nothing.",
   "'author' and 'rating' are always null: the Cookbook is written collectively and carries no reader score.",
-  "A time the page does not state is null, never zero, and never inferred from the steps.",
+  "A time the page does not state is null, never zero, and never inferred from the steps. A page stating phases rather than a total, such as a fermentation and a cooking, publishes them in 'time_phases' with 'total_minutes' null: the phases measure different things and are never added.",
   "Pages are published under a licence that requires attribution; 'license' and 'url' carry what to credit.",
 ].join(" ");
 
@@ -69,10 +76,51 @@ const nutritionSchema = z.object({
   iron: z.string().nullable(),
 });
 
+/**
+ * An ingredient as this page publishes it, with the part of the dish it is for.
+ *
+ * The group is what a recipe means by writing "2 tablespoons rum" twice: once
+ * for the soak and once for the glaze. Flattened away, the list reads as a
+ * mistake; kept, it reads as the recipe.
+ */
+const recipeIngredientSchema = scaledIngredientSchema.extend({
+  group: z
+    .string()
+    .nullable()
+    .describe(
+      "The part of the dish this line is for, such as 'Glaze'. Null when the page names none. Every part is made, so a caller buys all of them.",
+    ),
+  variant: z
+    .string()
+    .nullable()
+    .describe(
+      "The alternative list this line belongs to, such as 'Variation II'. Null when the line belongs to the recipe itself. Lines carrying different variants replace one another: exactly one of them is used, whatever the procedure says about mixing everything.",
+    ),
+});
+
+const timePhaseSchema = z.object({
+  label: z
+    .string()
+    .nullable()
+    .describe("The phase as the page names it, such as 'Fermentation'. Null when it names none."),
+  text: z.string().describe("The duration in the page's own wording."),
+  minutes: z
+    .number()
+    .nullable()
+    .describe("The duration in minutes, or the lower bound of a range."),
+  minutes_max: z
+    .number()
+    .nullable()
+    .describe("The upper bound where the page gives a range, null where it gives one figure."),
+});
+
 export const getRecipeOutput = z.object({
-  id: z.string(),
+  id: z.string().describe("The page that was read, which differs from 'id' after a redirect."),
   title: z.string(),
   url: z.string(),
+  redirected_from: z
+    .array(z.string())
+    .describe("Redirect pages walked to reach this one. Empty when the page was reached directly."),
   yield: z.object({
     original_count: z
       .number()
@@ -88,14 +136,28 @@ export const getRecipeOutput = z.object({
       .number()
       .describe("What the quantities were multiplied by. 1 when nothing was scaled."),
   }),
-  ingredients: z.array(scaledIngredientSchema),
+  ingredients: z.array(recipeIngredientSchema),
   equipment: z.array(z.string()),
   steps: z.array(z.string()),
   tips: z.array(z.string()).describe("Notes, tips and variations the page publishes."),
-  prep_minutes: z.number().nullable(),
-  cook_minutes: z.number().nullable(),
-  total_minutes: z.number().nullable(),
+  prep_minutes: z
+    .number()
+    .nullable()
+    .describe("The phase the page labels as preparation. Null when it labels none."),
+  cook_minutes: z
+    .number()
+    .nullable()
+    .describe("The phase the page labels as cooking. Null when it labels none."),
+  total_minutes: z
+    .number()
+    .nullable()
+    .describe(
+      "The whole dish, stated only where the page states a total: one duration, or a phase the page itself calls the total. Null where the page states phases and no total, since a fermentation, a marinade or a rest is not cooking time and adding them would answer with a figure nobody published. Read 'time_phases' instead.",
+    ),
   time_text: z.string().nullable().describe("The time in the page's own wording."),
+  time_phases: z
+    .array(timePhaseSchema)
+    .describe("Each duration the page states, in the order it states them."),
   category: z.string().nullable(),
   categories: z.array(z.string()).describe("Every category the page files itself under."),
   difficulty: z.number().nullable(),
@@ -119,9 +181,33 @@ export async function runGetRecipe(
   args: GetRecipeArgs,
 ): Promise<ToolResult> {
   try {
-    const { data, cached } = await client.getRecipe(args.id);
+    const { data: read, cached } = await client.getRecipe(args.id);
+    // A page that cooks nothing publishes no shopping list. The Cookbook's own
+    // chapter indexes write "Ingredients" over a column of links to the pages
+    // behind them, and read as a recipe those links become twelve things to buy.
+    const data: typeof read = read.readsAsRecipe
+      ? read
+      : {
+          ...read,
+          ingredients: [],
+          unreadableIngredients: 0,
+          ingredientGroups: [],
+          ingredientVariants: [],
+          equipment: [],
+        };
     const notes: string[] = [];
     if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    // Named first among the notes, and never dropped: the recipe answered is
+    // not the page the caller asked for, and a caller told nothing would credit
+    // the wrong address.
+    const [asked, ...alsoWalked] = data.redirectedFrom;
+    if (asked !== undefined) {
+      notes.push(
+        alsoWalked.length === 0
+          ? `${asked} is a redirect, so this is ${data.key}, the page it points at.`
+          : `${asked} is a redirect, and following it through ${alsoWalked.join(", ")} reached ${data.key}, whose recipe this is.`,
+      );
+    }
 
     const counted = data.yieldUnit ?? "servings";
     let factor = 1;
@@ -152,14 +238,49 @@ export async function runGetRecipe(
       );
     }
 
-    if (data.ingredients.length === 0) {
+    if (!read.readsAsRecipe) {
+      const lists = read.ingredients.length + read.equipment.length;
       notes.push(
-        "This page publishes no ingredient list under a heading this server reads, as a list or as a table. It may be a page about an ingredient, a technique or a cuisine rather than a recipe. Follow the link and read it.",
+        "This page carries no recipe: no recipe box, no recipe banner, and no procedure with steps in it. It may be a page about an ingredient, a technique or a cuisine, or an index pointing at the recipes themselves." +
+          (lists > 0
+            ? ` The ${lists} bulleted line(s) under its headings are the book's own links and were not read as a recipe's ingredients or equipment.`
+            : "") +
+          " Follow the link and read it.",
+      );
+    } else if (data.ingredients.length === 0) {
+      const headings = data.sectionTitles.filter((title) => title !== "");
+      notes.push(
+        "This page reads as a recipe and publishes no ingredient list under a heading this server reads, as a list or as a table." +
+          (headings.length > 0
+            ? ` The headings it does publish are ${headings.map((title) => `"${title}"`).join(", ")}.`
+            : "") +
+          " Follow the link and read the list where the page put it.",
+      );
+    }
+    if (data.unreadableIngredients > 0) {
+      notes.push(
+        `${data.unreadableIngredients} ingredient line(s) the page writes came back empty, everything on them being markup this server renders as nothing, and are missing from the list below.`,
+      );
+    }
+    if (data.furtherSections.length > 0) {
+      notes.push(
+        `This page publishes further sections beside the ones read: ${data.furtherSections.map((title) => `"${title}"`).join(", ")}. A heading owns what is nested under it and stops at the next heading of its own level, so what came back is the first list of each kind. A page carrying two recipes carries the second one there.`,
       );
     }
     if (data.steps.length === 0 && data.ingredients.length > 0) {
       notes.push(
         "This page publishes ingredients but no procedure under a heading this server reads.",
+      );
+    }
+
+    // Named among the first notes: a procedure reading "mix all ingredients"
+    // covers one of these lists, and a caller shown the lines together buys
+    // three times the fish and cooks a dish nobody wrote.
+    const variants = [...new Set(data.ingredientVariants.filter((name) => name !== null))];
+    if (variants.length > 0) {
+      const alsoOwn = data.ingredientVariants.some((name) => name === null);
+      notes.push(
+        `This page publishes ${variants.length} alternative ingredient list(s), under ${variants.map((name) => `"${name}"`).join(", ")}${alsoOwn ? ", beside the list the recipe states for itself" : ""}. Each one replaces the others rather than adding to them, so one of them is used and the procedure applies to whichever it is, whatever it says about mixing all the ingredients. 'variant' on every line says which list it came from.`,
       );
     }
 
@@ -176,7 +297,13 @@ export async function runGetRecipe(
       );
     }
     if (factor !== 1) notes.push(SCALING_CAVEAT);
-    if (data.totalMinutes === null && data.timeText !== null) {
+
+    const phased = data.timePhases.filter((phase) => phase.minutes !== null);
+    if (data.totalMinutes === null && phased.length > 0) {
+      notes.push(
+        `This page states its time in phases (${phased.map((phase) => (phase.label === null ? phase.text : `${phase.label}: ${phase.text}`)).join("; ")}) and states no total, so 'total_minutes' is null. The phases are not added: a fermentation, a marinade or a rest is not cooking time, and their sum is a figure the page never published. 'time_phases' carries each one.`,
+      );
+    } else if (data.totalMinutes === null && data.timeText !== null) {
       notes.push(
         `The page states its time as "${data.timeText}", which is not a number of minutes.`,
       );
@@ -187,10 +314,14 @@ export async function runGetRecipe(
       );
     }
 
+    const groupOf = (index: number) => data.ingredientGroups[index] ?? null;
+    const variantOf = (index: number) => data.ingredientVariants[index] ?? null;
+
     const structured = {
       id: data.key,
       title: data.title,
       url: data.sourceUrl,
+      redirected_from: data.redirectedFrom,
       yield: {
         original_count: data.servings,
         original_text: data.yieldText,
@@ -198,17 +329,24 @@ export async function runGetRecipe(
         unit: data.yieldUnit,
         factor: Number(factor.toPrecision(3)),
       },
-      ingredients: ingredients.map(toScaledIngredientOut),
+      ingredients: ingredients.map((entry, index) => ({
+        ...toScaledIngredientOut(entry),
+        group: groupOf(index),
+        variant: variantOf(index),
+      })),
       equipment: data.equipment,
       steps: data.steps,
       tips: data.tips,
-      // The recipe box gives one duration for the whole dish and never splits
-      // it, so inventing a preparation and a cooking half would be this server
-      // making a claim the page does not.
-      prep_minutes: null,
-      cook_minutes: null,
+      prep_minutes: data.prepMinutes,
+      cook_minutes: data.cookMinutes,
       total_minutes: data.totalMinutes,
       time_text: data.timeText,
+      time_phases: data.timePhases.map((phase) => ({
+        label: phase.label,
+        text: phase.text,
+        minutes: phase.minutes,
+        minutes_max: phase.minutesMax,
+      })),
       category: data.category,
       categories: data.categories,
       difficulty: data.difficulty,
@@ -244,7 +382,7 @@ export async function runGetRecipe(
       notes,
     };
 
-    return ok(structured, renderRecipe(data.title, structured, ingredients), {
+    return ok(structured, renderRecipe(data.title, structured, ingredients, groupOf, variantOf), {
       notes,
       sourceUrl: data.sourceUrl,
     });
@@ -276,6 +414,8 @@ function renderRecipe(
     nutrition: { serving_size: string | null; calories: string | null } | null;
   },
   ingredients: ScaledIngredient[],
+  groupOf: (index: number) => string | null,
+  variantOf: (index: number) => string | null,
 ): string {
   const counted = structured.yield.unit ?? "servings";
   // A requested yield is worth printing when quantities went with it. On an
@@ -298,10 +438,41 @@ function renderRecipe(
 
   const lines = [...head];
 
-  if (ingredients.length > 0) {
+  const shown = (entry: ScaledIngredient) =>
+    `${entry.text}${entry.scaling === "unscaled" ? " (not adjusted)" : ""}`;
+
+  const own = ingredients.filter((_entry, index) => variantOf(index) === null);
+  if (own.length > 0) {
     lines.push("", "Ingredients:");
-    for (const entry of ingredients) {
-      lines.push(`  ${entry.text}${entry.scaling === "unscaled" ? " (not adjusted)" : ""}`);
+    // The group is printed as it changes rather than on every line: a recipe
+    // that calls for the same quantity in two of its parts reads as a repeat
+    // without it, and as a soak and a glaze with it.
+    let printed: string | null = null;
+    ingredients.forEach((entry, index) => {
+      if (variantOf(index) !== null) return;
+      const group = groupOf(index);
+      if (group !== null && group !== printed) lines.push(`  ${group}:`);
+      printed = group;
+      const indent = group === null ? "  " : "    ";
+      lines.push(`${indent}${shown(entry)}`);
+    });
+  }
+
+  // The alternatives stand under a heading of their own and never inside the
+  // list above: run together, they read as one order of shopping, and the
+  // procedure that says to mix everything then covers all of them at once.
+  const alternatives = [
+    ...new Set(
+      ingredients.map((_entry, index) => variantOf(index)).filter((name) => name !== null),
+    ),
+  ];
+  if (alternatives.length > 0) {
+    lines.push("", `Alternative ingredient lists, one of which is used instead of the others:`);
+    for (const name of alternatives) {
+      lines.push(`  ${name}:`);
+      ingredients.forEach((entry, index) => {
+        if (variantOf(index) === name) lines.push(`    ${shown(entry)}`);
+      });
     }
   }
   if (structured.equipment.length > 0) {

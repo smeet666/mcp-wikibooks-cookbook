@@ -22,6 +22,7 @@ interface RecipeOut {
     amount_max: number | null;
     unit: string | null;
     note?: string;
+    group: string | null;
   }>;
   steps: string[];
   equipment: string[];
@@ -238,7 +239,7 @@ describe("get_recipe, a page that is not a recipe", () => {
     expect(out.ingredients).toEqual([]);
     expect(out.steps).toEqual([]);
     expect(result.isError).toBeUndefined();
-    expect(out.notes.some((note) => note.includes("no ingredient list"))).toBe(true);
+    expect(out.notes.some((note) => note.includes("carries no recipe"))).toBe(true);
   });
 });
 
@@ -255,5 +256,41 @@ describe("get_recipe, the text block", () => {
   it("marks a line the scaler left alone", async () => {
     const { result } = await read("page-recipe", { servings: 4 });
     expect(result.content[0]!.text).toContain("Salt (not adjusted)");
+  });
+});
+
+describe("get_recipe, ingredients a page groups by what they are for", () => {
+  it("carries the group each line sits under", async () => {
+    const { out } = await read("page-grouped-ingredients", { id: "Cookbook:Orchard_Layer_Cake" });
+    expect(out.ingredients.map((line) => line.group)).toEqual([
+      "Cake",
+      "Cake",
+      "Cake",
+      "Soak",
+      "Soak",
+      "Glaze",
+      "Glaze",
+    ]);
+  });
+
+  it("keeps a line published twice, because two parts each call for it", async () => {
+    const { out } = await read("page-grouped-ingredients", { id: "Cookbook:Orchard_Layer_Cake" });
+    const syrup = out.ingredients.filter((line) => line.original.includes("lamp syrup"));
+    expect(syrup.map((line) => line.group)).toEqual(["Soak", "Glaze"]);
+  });
+
+  it("prints the groups in the text block, so the duplicate lines make sense", async () => {
+    const { result } = await read("page-grouped-ingredients", {
+      id: "Cookbook:Orchard_Layer_Cake",
+    });
+    const text = result.content[0]!.text;
+    expect(text).toContain("Ingredients:");
+    expect(text).toContain("Soak:");
+    expect(text).toContain("Glaze:");
+  });
+
+  it("states null for a group on a page that lists its ingredients flat", async () => {
+    const { out } = await read("page-recipe");
+    expect(out.ingredients.every((line) => line.group === null)).toBe(true);
   });
 });

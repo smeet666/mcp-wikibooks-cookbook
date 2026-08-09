@@ -1,0 +1,15 @@
+{
+  "id": 104,
+  "key": "Cookbook:Orchard_Pudding",
+  "title": "Cookbook:Orchard Pudding",
+  "latest": {
+    "id": 8,
+    "timestamp": "2026-01-05T05:05:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "{{recipesummary|category=Sweet recipes|servings=4|difficulty=2}}\n{{recipe}}\n\nTwo households of the orchard country make '''orchard pudding''' their own way.\n\n== Ingredients ==\n* 200 [[Cookbook:Gram|g]] late fruit\n* 100 g pale sugar\n\n== Procedure ==\n# Stew the fruit with the sugar and chill it.\n\n== Ingredients (baked) ==\n* 300 g late fruit\n* 2 [[Cookbook:Egg|eggs]]\n\n== Procedure (baked) ==\n# Beat the eggs through the fruit and bake the pudding."
+}

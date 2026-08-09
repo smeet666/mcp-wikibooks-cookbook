@@ -4,6 +4,8 @@ import {
   flattenWikitext,
   listItems,
   readCategories,
+  sectionBody,
+  sectionChunks,
   splitSections,
   templateArg,
 } from "../../src/wikibooks/wikitext.js";
@@ -111,6 +113,60 @@ describe("splitSections", () => {
     ]);
     expect(sections[1]!.body).toContain("*a");
     expect(sections[1]!.body).not.toContain("*b");
+  });
+});
+
+describe("sectionBody", () => {
+  const source = [
+    "lead",
+    "==Ingredients==",
+    "*a",
+    "===Cake===",
+    "*b",
+    "====Crumb====",
+    "*c",
+    "===Glaze===",
+    "*d",
+    "==Procedure==",
+    "#step",
+  ].join("\n");
+  const sections = splitSections(source);
+
+  it("covers every section nested under the heading, however deep", () => {
+    const body = sectionBody(sections, 1);
+    expect(body).toContain("*a");
+    expect(body).toContain("*b");
+    expect(body).toContain("*c");
+    expect(body).toContain("*d");
+  });
+
+  it("stops at the next heading of the same level or shallower", () => {
+    expect(sectionBody(sections, 1)).not.toContain("#step");
+  });
+
+  it("leaves out a nested section that stands on its own, and its own children", () => {
+    const body = sectionBody(sections, 1, { standsAlone: (section) => section.title === "Cake" });
+    expect(body).toContain("*a");
+    expect(body).not.toContain("*b");
+    expect(body).not.toContain("*c");
+    expect(body).toContain("*d");
+  });
+
+  it("returns nothing for an index no section stands at", () => {
+    expect(sectionBody(sections, 99)).toBe("");
+  });
+});
+
+describe("sectionChunks", () => {
+  const sections = splitSections(
+    ["==Ingredients==", "*a", "===Cake===", "*b", "====Crumb====", "*c"].join("\n"),
+  );
+
+  it("names the sub-heading each run of text sits under", () => {
+    // Index 1: index 0 is the lead, which a page opening on a heading leaves empty.
+    const chunks = sectionChunks(sections, 1);
+    expect(chunks.map((chunk) => chunk.subheading)).toEqual([null, "Cake", "Crumb"]);
+    expect(chunks[1]!.body).toContain("*b");
   });
 });
 

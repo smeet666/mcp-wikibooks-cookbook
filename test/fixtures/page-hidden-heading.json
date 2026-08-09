@@ -1,0 +1,15 @@
+{
+  "id": 103,
+  "key": "Cookbook:Orchard_Porridge",
+  "title": "Cookbook:Orchard Porridge",
+  "latest": {
+    "id": 7,
+    "timestamp": "2026-01-04T04:04:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "{{recipesummary|category=Breakfast recipes|servings=2|difficulty=1}}\n{{recipe}}\n\nAn '''orchard porridge''' is soaked overnight.\n\n== Ingredients ==\n* 1 [[Cookbook:Cup|cup]] rolled oats\n<!--\n== Procedure ==\nan editor left this heading here while rewriting the page\n-->\n* 2 cups milk\n\n== Procedure ==\n# Soak the oats in the milk overnight and warm them through."
+}

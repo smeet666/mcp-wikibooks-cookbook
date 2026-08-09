@@ -122,6 +122,12 @@ const UNITS: Record<string, UnitInfo> = {
   // hold allows. See `unitDivisibility`.
   can: { canonical: "can", kind: "portioned", system: "none" },
   cans: { canonical: "can", kind: "portioned", system: "none" },
+  // The same container under the word half the English-speaking world uses for
+  // it. Unlisted, the line counts no container at all and the question of how
+  // far it divides falls to what is inside it, so a tin of tomatoes would be
+  // quartered the way a tomato is.
+  tin: { canonical: "tin", kind: "portioned", system: "none" },
+  tins: { canonical: "tin", kind: "portioned", system: "none" },
   jar: { canonical: "jar", kind: "portioned", system: "none" },
   jars: { canonical: "jar", kind: "portioned", system: "none" },
   packet: { canonical: "packet", kind: "portioned", system: "none" },
@@ -189,6 +195,21 @@ const UNITS: Record<string, UnitInfo> = {
 };
 
 /**
+ * Abbreviations also answer to the plural mark a page writes on them.
+ *
+ * A symbol stands in for the word rather than spelling it out, and a recipe
+ * writing "1 tbsp" on one line writes "3 tbsps" on the next. Both name the same
+ * spoon, and a spelling the vocabulary does not carry sends the amount to the
+ * countable branch, where a spoonful is rounded as though it were one
+ * indivisible object: two neighbouring lines of one page then come back scaled
+ * by different rules.
+ */
+for (const [key, info] of Object.entries(UNITS)) {
+  const plural = `${key}s`;
+  if (info.symbol && UNITS[plural] === undefined) UNITS[plural] = info;
+}
+
+/**
  * What a kitchen usually takes each approximate measure to be.
  *
  * Offered as words for a note, never as the quantity: writing "2 teaspoons"
@@ -238,6 +259,14 @@ export const UNIT_KEYS = Object.keys(UNITS).sort(
 );
 
 /**
+ * The single characters a recipe writes a fraction with, as a run for a class.
+ *
+ * A quantity can open on one of them, as in "½ cup", and a figure that is not
+ * recognised as a figure hides the quantity behind it.
+ */
+const VULGAR_GLYPHS = "½⅓⅔¼¾⅕⅖⅗⅘⅙⅚⅛⅜⅝⅞";
+
+/**
  * Matches a number followed by a unit anywhere in a piece of text.
  *
  * Used to spot a quantity this parser did not take, such as the second half of
@@ -245,7 +274,7 @@ export const UNIT_KEYS = Object.keys(UNITS).sort(
  * a scaled line still saying what the original said.
  */
 export const EMBEDDED_MEASURE = new RegExp(
-  `\\d(?:[\\d.,/\\s]*)?\\s*(?:${UNIT_KEYS.map((key) => key.replace(/ /g, "\\s+")).join("|")})\\b`,
+  `[\\d${VULGAR_GLYPHS}](?:[\\d.,/\\s${VULGAR_GLYPHS}]*)?\\s*(?:${UNIT_KEYS.map((key) => key.replace(/ /g, "\\s+")).join("|")})\\b`,
   "i",
 );
 

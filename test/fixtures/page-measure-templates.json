@@ -1,0 +1,15 @@
+{
+  "id": 60112,
+  "key": "Cookbook:Lamp_Oil_Buns",
+  "title": "Cookbook:Lamp Oil Buns",
+  "latest": {
+    "id": 41,
+    "timestamp": "2026-01-20T10:00:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "{{recipesummary|category=Bread recipes|servings=12|time=40 minutes|difficulty=2}}\n\nA '''lamp oil bun''' is enriched with the late pressing and baked hot.\n\n== Ingredients ==\n* 1 [[Cookbook:Cup|cup]] ({{convert|225|g|oz|abbr=on|disp=s}}) pale sugar\n* {{frac|1|4}} cup lamp oil\n* {{convert|170|-|225|g|oz|abbr=on}} orchard butter\n* {{sfrac|2|1|2}} cups hard flour\n* {{convert|2.5|g}} salt\n\n== Procedure ==\n# Preheat the [[Cookbook:Oven|oven]] to {{convert|180|C|F}} and grease a tray.\n# Roll the dough {{convert|0.5|in|cm}} thick and bake it for 20 minutes.\n\n[[Category:Recipes for bread]]"
+}

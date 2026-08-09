@@ -570,6 +570,56 @@ function takeUnit(text: string): { unit: UnitInfo | null; rest: string } {
   return { unit: null, rest: text };
 }
 
+/** A quantity a line states in brackets, and where it stands in the line. */
+export interface BracketedIndication {
+  /** Index of the opening bracket. */
+  start: number;
+  /** Index just past the closing bracket. */
+  end: number;
+  /** The word the page put before the figure to loosen it, as in "about". */
+  lead: string;
+  measure: Measure;
+}
+
+/**
+ * Read a quantity a line puts in brackets while asking for no fixed amount.
+ *
+ * "Warm water as required (about 1 ½ cups)" states a quantity: the head says
+ * how the cook decides and the bracket says how much that usually comes to.
+ * Answering that the line gives no quantity is false, and leaving the figure
+ * alone while the flour doubles hands back a dough that will not come together.
+ *
+ * The bracket is only read when everything inside it is one amount with a unit,
+ * so "(about 110 °F)" and "(the riper the better)" are prose and stay prose.
+ */
+export function readBracketedIndication(text: string): BracketedIndication | null {
+  for (const match of text.matchAll(/\(([^()]*)\)/g)) {
+    const inside = match[1] ?? "";
+    const loose = APPROXIMATION_PREFIX.exec(inside);
+    const stated = loose ? inside.slice(loose[0].length) : inside;
+
+    const range = parseLeadingRange(stated);
+    const quantity = range ?? parseLeadingQuantity(stated);
+    if (!quantity) continue;
+
+    const after = takeUnit(stated.slice(quantity.length).trimStart());
+    if (!after.unit || after.rest.trim() !== "") continue;
+
+    return {
+      start: match.index,
+      end: match.index + match[0].length,
+      lead: loose ? loose[0] : "",
+      measure: {
+        amount: quantity.amount,
+        amountMax: range?.max ?? null,
+        rangeSeparator: range?.separator ?? null,
+        unit: after.unit,
+      },
+    };
+  }
+  return null;
+}
+
 /**
  * Read a bracketed group of equivalent measures, as in "(1 pound)" or
  * "(500 g / 1.1 lb)".

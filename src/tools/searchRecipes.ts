@@ -17,7 +17,7 @@ export const searchRecipesDescription = [
   "Search the Wikibooks Cookbook for a recipe, by dish name or by an ingredient it uses.",
   "'text' searches the whole of each page, which is what finds a dish from an ingredient inside it; 'title' matches the page name only, which is exact and misses a dish the Cookbook names differently.",
   "The Cookbook also holds reference pages on ingredients, techniques and cuisines, and those rank alongside recipes: a row is a page, and only get_recipe can say whether it carries an ingredient list.",
-  "A full-text row can be a page that merely names the dish: when the titles do not say the words searched for, the notes say so, because the Cookbook links to dishes it does not hold.",
+  "A full-text row can be a page that merely names the dish: when the titles do not say the words searched for, the notes say so, because the Cookbook links to dishes it does not hold. On a title search the same rows are pages the Cookbook files under another name, such as 'Eggplant' for 'aubergine', since that search opens no page.",
   "'total_available' is null because the search route reports no total and offers no second page. Narrow the query rather than asking for more.",
   "Every row carries an 'id', which get_recipe takes.",
 ].join(" ");
@@ -113,10 +113,19 @@ export async function runSearchRecipes(
         "A row can be a reference page on an ingredient or a technique rather than a recipe. Open it with get_recipe before describing it as one.",
       );
       const mentions = results.filter((row) => !titleCarries(row.title, args.query)).length;
-      if (mentions > 0) {
+      if (mentions > 0 && args.search === "text") {
         notes.push(
           `${mentions} of the ${results.length} rows matched "${args.query}" inside the page rather than in the title, so they mention the dish. ` +
             "A page that mentions a dish need not hold a recipe for it, and the Cookbook links to dishes it does not carry.",
+        );
+      }
+      // A title search reads page names and never opens a page, so a row whose
+      // name does not carry the words was reached under another name the wiki
+      // files it under, the way "aubergine" reaches a page called "Eggplant".
+      if (mentions > 0 && args.search === "title") {
+        notes.push(
+          `${mentions} of the ${results.length} rows carry a name that does not say "${args.query}", so the Cookbook files them under another name. ` +
+            "This search read page names only and opened no page.",
         );
       }
     }

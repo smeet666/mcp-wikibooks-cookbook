@@ -1,0 +1,15 @@
+{
+  "id": 101,
+  "key": "Cookbook:Orchard_Loaf",
+  "title": "Cookbook:Orchard Loaf",
+  "latest": {
+    "id": 5,
+    "timestamp": "2026-01-02T02:02:00Z"
+  },
+  "content_model": "wikitext",
+  "license": {
+    "url": "https://creativecommons.org/licenses/by-sa/4.0/deed.en",
+    "title": "Creative Commons Attribution-Share Alike 4.0"
+  },
+  "source": "{{recipesummary|category=Bread recipes|yield=1 loaf|difficulty=2}}\n{{recipe}}\n\nAn '''orchard loaf''' is baked from late fruit and hard flour.\n\n== What you need ==\n* 3 [[Cookbook:Cup|cups]] hard flour\n* 2 late fruit, mashed\n\n== Procedure ==\n# Work the flour and the fruit into a dough.\n# Bake it until a skewer comes out clean.\n\n[[Category:Recipes for bread]]"
+}

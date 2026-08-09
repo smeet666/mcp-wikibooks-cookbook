@@ -9,9 +9,15 @@
 import { describe, expect, it } from "vitest";
 import { CookbookError } from "../../src/errors.js";
 import { CookbookClient } from "../../src/wikibooks/client.js";
-import { runGetRecipe } from "../../src/tools/getRecipe.js";
+import { getRecipeDescription, runGetRecipe } from "../../src/tools/getRecipe.js";
 import { runSearchRecipes } from "../../src/tools/searchRecipes.js";
-import { ATTRIBUTION, MAX_TEXT_CHARS, ok, toToolError } from "../../src/tools/shared.js";
+import {
+  ATTRIBUTION,
+  MAX_TEXT_CHARS,
+  ok,
+  scaledIngredientSchema,
+  toToolError,
+} from "../../src/tools/shared.js";
 import { fixture, jsonResponse, routedFetch, silentLogger } from "./helpers.js";
 
 function client(routes: Array<[string, unknown]>) {
@@ -164,5 +170,21 @@ describe("the pacing the site is owed cannot be configured away", () => {
     });
     expect(named.userAgent).toContain("mcp-wikibooks-cookbook/");
     expect(named.userAgent).toContain("github.com/smeet666/mcp-wikibooks-cookbook");
+  });
+});
+
+describe("a description promises what the code does", () => {
+  // A caller reads the description instead of the ingredient list it is about
+  // to be handed. A rule stated more narrowly than it is applied sends a cook
+  // looking for the half the tool never produced.
+  it("names every share a counted thing can land on", () => {
+    expect(getRecipeDescription).toContain("half");
+    expect(getRecipeDescription).toContain("quarter");
+  });
+
+  it("names the shares in the shape a scaled line reports", () => {
+    const described = scaledIngredientSchema.shape.scaling.description ?? "";
+    expect(described).toContain("half");
+    expect(described).toContain("quarter");
   });
 });

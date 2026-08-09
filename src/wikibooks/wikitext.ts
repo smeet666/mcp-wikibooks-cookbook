@@ -146,6 +146,12 @@ export function templateArg(template: Template, name: string, position?: number)
 }
 
 /**
+ * Every spelling of a line break a page uses, the mistaken closing form
+ * included: the wiki renders `</br>` as a break like the others.
+ */
+export const LINE_BREAK_TAG = /<\s*\/?\s*br\s*\/?\s*>/gi;
+
+/**
  * Flatten wiki markup to the text a reader sees.
  *
  * `[[Cookbook:Pasta|spaghetti]]` becomes "spaghetti" and `[[Cookbook:Salt]]`
@@ -183,7 +189,15 @@ export function flattenWikitext(source: string): string {
     typeof label === "string" && label.trim() !== "" ? label : String(url),
   );
 
-  text = text.replace(/<\/?(?:nowiki|small|big|sup|sub|span|div|br)[^>]*>/gi, "");
+  // A line break separates what stands on either side of it. Removed outright,
+  // "1 hour<br>Cooking" becomes one word and stops being a duration.
+  text = text.replace(LINE_BREAK_TAG, " ");
+  // Tags the wiki renders as shape rather than as words: what a reader takes
+  // from the page is the text between them.
+  text = text.replace(
+    /<\/?(?:nowiki|small|big|sup|sub|span|div|blockquote|center|p|em|strong|i|b|u)[^>]*>/gi,
+    "",
+  );
   // Bold and italic are three, four or five apostrophes around the word.
   text = text.replace(/'{2,5}/g, "");
 
@@ -194,10 +208,21 @@ export function flattenWikitext(source: string): string {
   text = decodeEntities(text);
 
   return text
+    .replace(EMPTY_BRACKETS, "")
     .replace(/[ \t]+/g, " ")
     .replace(/ +\n/g, "\n")
     .trim();
 }
+
+/**
+ * A bracket left holding nothing.
+ *
+ * A page puts a call in brackets to gloss what stands before it, and a call
+ * that renders no words leaves the brackets sitting in the sentence. Empty,
+ * they announce an aside the page never made. The space in front of one goes
+ * with it, since the sentence closed before the bracket opened.
+ */
+const EMPTY_BRACKETS = /[ \t]*\(\s*\)/g;
 
 /**
  * Named HTML entities a page writes where the character itself would do.
@@ -257,31 +282,159 @@ function stripNamespace(target: string): string {
 }
 
 /**
- * Remove template calls, keeping their nesting straight.
+ * Reduce every template call to the text it puts on the page.
  *
- * A recipe's prose holds citation templates whose contents are bibliography
- * rather than instruction, and an infobox whose contents are read separately
- * before this runs.
+ * Most calls put nothing a cook can use there: a citation is bibliography, a
+ * banner is navigation, and an infobox is read separately before this runs. A
+ * few carry the only figure in their sentence, and those are rendered. An oven
+ * temperature written as a template and dropped leaves "Preheat the oven to .",
+ * which reads as a finished instruction and is not one.
+ *
+ * A call left unclosed swallows the rest of the text: everything after it is
+ * markup whose end is unknown, and guessing where it stops splices half a
+ * template into a sentence.
  */
 export function stripTemplates(source: string): string {
   let out = "";
-  let depth = 0;
 
   for (let i = 0; i < source.length; i += 1) {
     if (source.slice(i, i + 2) === "{{") {
-      depth += 1;
-      i += 1;
+      const end = matchingClose(source, i);
+      if (end === null) break;
+      out += renderTemplate(parseTemplateBody(source.slice(i + 2, end)));
+      i = end + 1;
       continue;
     }
-    if (source.slice(i, i + 2) === "}}" && depth > 0) {
-      depth -= 1;
-      i += 1;
-      continue;
-    }
-    if (depth === 0) out += source[i];
+    out += source[i];
   }
 
   return out;
+}
+
+/**
+ * What one template call contributes to the flattened text.
+ *
+ * Only the calls whose arguments hold a measurement render anything. The
+ * measurement templates state a value, a unit, and a unit to convert it into;
+ * what comes back is the value and the unit the page wrote. The converted
+ * counterpart is computed rather than published, and measurements are repeated
+ * here in the system the source chose.
+ */
+function renderTemplate(template: Template): string {
+  if (template.name === "convert" || template.name === "cvt") return renderConversion(template);
+  if (template.name === "frac" || template.name === "sfrac") return renderFraction(template);
+  if (template.name === "cb") return renderCookbookLink(template);
+  if (template.name === "w" || template.name === "wp" || template.name === "wikt") {
+    return renderInterwikiLink(template);
+  }
+  if (template.name === "lang") return renderForeignPhrase(template);
+  return "";
+}
+
+/**
+ * A link to another wiki written as a template call, as the words it shows.
+ *
+ * The call expands to a link labelled either by the title it points at or by
+ * the label given after it. Dropped, the sentence loses the word it was built
+ * around: "A stew from , served warm."
+ */
+function renderInterwikiLink(template: Template): string {
+  const [target, label] = template.positional;
+  const shown = label !== undefined && label.trim() !== "" ? label : target;
+  return shown?.trim() ?? "";
+}
+
+/**
+ * A phrase a page marks as belonging to another language, as that phrase.
+ *
+ * The call states the language first and the words second, and the words are
+ * what a reader sees: the marking is for whoever reads the page aloud.
+ */
+function renderForeignPhrase(template: Template): string {
+  const [, phrase] = template.positional;
+  return phrase?.trim() ?? "";
+}
+
+/**
+ * A link into the Cookbook written as a template call, as the word it shows.
+ *
+ * The call expands to a link whose label is its argument, so what a reader sees
+ * is that word. Dropped, an ingredient line keeps its amount and names nothing:
+ * "500 g fresh" is a line whoever avoids an ingredient cannot check.
+ */
+function renderCookbookLink(template: Template): string {
+  return template.positional[0]?.trim() ?? "";
+}
+
+/** Separators a conversion call puts between the two ends of a range. */
+const RANGE_SEPARATORS: Record<string, string> = {
+  "-": "–",
+  "–": "–",
+  "—": "–",
+  to: " to ",
+  and: " and ",
+};
+
+/**
+ * A conversion call as the value and unit its arguments open with.
+ *
+ * The arguments run value, unit, unit-to-convert-into, and a range is written
+ * by putting a separator where the first unit would be. A call whose first
+ * argument is not a number states no measurement, so it contributes nothing
+ * rather than a stray word.
+ */
+function renderConversion(template: Template): string {
+  const [first, second, third, fourth] = template.positional;
+  if (first === undefined || !isNumeric(first)) return "";
+
+  const separator = second === undefined ? undefined : RANGE_SEPARATORS[second.toLowerCase()];
+  if (separator !== undefined && third !== undefined && isNumeric(third)) {
+    return withUnit(`${first}${separator}${third}`, fourth);
+  }
+  return withUnit(first, second);
+}
+
+/**
+ * Units a conversion call names by a letter the page never shows bare.
+ *
+ * The wiki prints a degree sign in front of the temperature scales, and a
+ * reader handed "180 C" reads a unit the page does not use.
+ */
+const UNIT_LABELS: Record<string, string> = { C: "°C", F: "°F", K: "K", R: "°R" };
+
+function withUnit(value: string, unit: string | undefined): string {
+  if (unit === undefined || unit.trim() === "") return value;
+  return `${value} ${UNIT_LABELS[unit.trim()] ?? unit.trim()}`;
+}
+
+/**
+ * A fraction call as the figures it holds.
+ *
+ * One argument names the denominator of a single part, two name a numerator
+ * over a denominator, and three put a whole number in front of the fraction.
+ */
+function renderFraction(template: Template): string {
+  const parts = template.positional.filter((part) => part.trim() !== "");
+  if (parts.length === 0 || parts.length > 3 || !parts.every(isNumeric)) return "";
+  if (parts.length === 1) return `1/${parts[0]}`;
+  if (parts.length === 2) return `${parts[0]}/${parts[1]}`;
+  return `${parts[0]} ${parts[1]}/${parts[2]}`;
+}
+
+function isNumeric(value: string): boolean {
+  return /^\d+(?:\.\d+)?$/.test(value.trim());
+}
+
+/**
+ * Drop the HTML comments a page carries.
+ *
+ * A comment is invisible to whoever reads the page, so nothing inside it is
+ * part of any section. Editors park a heading in one while they rewrite a page,
+ * and read as markup it opens a section that exists for nobody, cutting a list
+ * in two and filing the rest of it under the wrong part of the recipe.
+ */
+export function stripComments(source: string): string {
+  return source.replace(/<!--[\s\S]*?-->/g, "");
 }
 
 export interface Section {
@@ -312,6 +465,102 @@ export function splitSections(source: string): Section[] {
   return sections;
 }
 
+/** A run of wikitext inside a section, and the headings it sits under. */
+export interface SectionChunk {
+  /** The sub-heading naming the part of the dish this text belongs to. */
+  subheading: string | null;
+  /** The sub-heading naming the alternative this text belongs to. */
+  alternative: string | null;
+  body: string;
+}
+
+/** How `sectionChunks` tells one nested heading from another. */
+export interface NestedHeadingRules {
+  /**
+   * A heading that belongs to something else than the section being read. Such
+   * a heading is passed over with everything nested under it.
+   */
+  standsAlone?: (section: Section) => boolean;
+  /**
+   * A heading naming an alternative rather than a component. Its text is kept
+   * and labelled with that heading, and so is everything nested under it.
+   */
+  opensAlternative?: (section: Section) => boolean;
+}
+
+/**
+ * The runs of text a heading covers, its nested sections included.
+ *
+ * A heading on a wiki owns everything down to the next heading of its own level
+ * or shallower, so a recipe that groups its ingredients under "Cake", "Soak"
+ * and "Glaze" still states one list. Each run keeps the sub-heading above it,
+ * because that word says what the ingredient is for and two runs can name the
+ * same quantity for different parts of the dish.
+ *
+ * Two kinds of nested heading are not parts of what is being read. One belongs
+ * to another section of the recipe: a page can file its procedure one level
+ * under its ingredients, and the heading decides what it is, so it is passed
+ * over. The other names an alternative to the whole: a second version of the
+ * dish is written exactly like a second part of it, and folding the two
+ * together builds a list nobody would cook.
+ */
+export function sectionChunks(
+  sections: Section[],
+  index: number,
+  rules: NestedHeadingRules = {},
+): SectionChunk[] {
+  const start = sections[index];
+  if (start === undefined) return [];
+  const standsAlone = rules.standsAlone ?? (() => false);
+  const opensAlternative = rules.opensAlternative ?? (() => false);
+
+  const chunks: SectionChunk[] = [{ subheading: null, alternative: null, body: start.body }];
+  let skipBelow: number | null = null;
+  let part: { level: number; title: string } | null = null;
+  let alternative: { level: number; title: string } | null = null;
+
+  for (let at = index + 1; at < sections.length; at += 1) {
+    const section = sections[at];
+    if (section === undefined || section.level <= start.level) break;
+    if (skipBelow !== null && section.level > skipBelow) continue;
+    skipBelow = null;
+    if (standsAlone(section)) {
+      skipBelow = section.level;
+      continue;
+    }
+
+    // A heading closes whichever scope it is not nested inside.
+    if (part !== null && section.level <= part.level) part = null;
+    if (alternative !== null && section.level <= alternative.level) alternative = null;
+
+    const title = section.title === "" ? null : section.title;
+    if (title !== null && opensAlternative(section)) {
+      alternative = { level: section.level, title };
+    } else if (title !== null) {
+      part = { level: section.level, title };
+    }
+
+    chunks.push({
+      subheading: part?.title ?? null,
+      alternative: alternative?.title ?? null,
+      body: section.body,
+    });
+  }
+
+  return chunks;
+}
+
+/** Everything `sectionChunks` covers, as one stretch of wikitext. */
+export function sectionBody(
+  sections: Section[],
+  index: number,
+  rules: NestedHeadingRules = {},
+): string {
+  return sectionChunks(sections, index, rules)
+    .map((chunk) => chunk.body)
+    .join("\n");
+}
+
 /**
  * Read a bulleted or numbered list out of a section body.
  *
@@ -320,16 +569,36 @@ export function splitSections(source: string): Section[] {
  * ingredient the recipe never asked for.
  */
 export function listItems(body: string, markers: string): string[] {
+  return readList(body, markers).items;
+}
+
+/** A list read out of a section, with the entries that flattened to nothing. */
+export interface ListRead {
+  items: string[];
+  /**
+   * Entries the page wrote that came back empty, because everything on them was
+   * markup this parser renders as nothing. Counted rather than dropped: a
+   * shorter list than the page publishes is a list a cook shops from.
+   */
+  emptied: number;
+}
+
+/** Read a bulleted or numbered list, counting the entries that came to nothing. */
+export function readList(body: string, markers: string): ListRead {
   const items: string[] = [];
+  let emptied = 0;
   for (const line of body.split("\n")) {
     const trimmed = line.trimEnd();
     const first = trimmed[0];
     if (!first || !markers.includes(first)) continue;
     if (trimmed[1] && markers.includes(trimmed[1])) continue;
-    const text = flattenWikitext(trimmed.slice(1)).trim();
-    if (text !== "") items.push(text);
+    const written = trimmed.slice(1);
+    if (written.trim() === "") continue;
+    const text = flattenWikitext(written).trim();
+    if (text === "") emptied += 1;
+    else items.push(text);
   }
-  return items;
+  return { items, emptied };
 }
 
 /** A `{| … |}` table, with its heading cells and its body rows, all flattened. */

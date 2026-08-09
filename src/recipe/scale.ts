@@ -13,8 +13,8 @@
  * one pinch for twenty-five servings is a recipe that does not rise.
  */
 
-import { formatAmount, parseIngredient } from "./quantity.js";
-import type { HeldBack, Measure, ParsedIngredient } from "./quantity.js";
+import { formatAmount, parseIngredient, readBracketedIndication } from "./quantity.js";
+import type { BracketedIndication, HeldBack, Measure, ParsedIngredient } from "./quantity.js";
 import type { Divisibility, UnitInfo } from "./units.js";
 import {
   EMBEDDED_MEASURE,
@@ -32,8 +32,9 @@ export type ScalingKind =
   /** The arithmetic was exact. */
   | "scaled"
   /**
-   * A countable item was moved to a whole or half unit, or a measurement was
-   * demoted to a smaller unit to stay usable.
+   * A countable item was moved to the smallest share a cook takes out of one of
+   * it, a whole, a half or a quarter, or a measurement was demoted to a smaller
+   * unit to stay usable.
    */
   | "rounded"
   /** The line carries nothing that can be multiplied. */
@@ -60,6 +61,19 @@ export interface ScaledIngredient {
   unit: string | null;
   /** Why the line was rounded, clamped or left alone. */
   note?: string;
+}
+
+/**
+ * A figure written into a note, where it stands to be compared against the line
+ * the note is about.
+ *
+ * Two decimals is the precision a kitchen reads, and a quantity below that is
+ * written with the digits it has instead: a "0" beside an ingredient the recipe
+ * still asks for reads as a mistake rather than as a small number.
+ */
+function noteFigure(value: number): string {
+  const shown = formatAmount(Math.round(value * 1000) / 1000, { fractions: false });
+  return shown === "0" && value !== 0 ? String(Number(value.toPrecision(2))) : shown;
 }
 
 /** Round to a step, keeping two decimals at most. */
@@ -304,17 +318,23 @@ function scaleMeasure(
 
   if (unit && isSpoonMeasure(unit)) {
     const stepped = stepDownSpoon(unit, reference);
+    // The bottom of the ladder is reached with the amount still under what the
+    // smallest spoon holds, and the floor is what keeps the ingredient in the
+    // recipe instead of stating a share no measuring set can produce.
+    const underFloor = reference * stepped.ratio < SMALLEST_USABLE_FRACTION;
     // A share stated in the smaller spoon is a measurement, and keeps the
     // precision of one rather than being snapped to the fractions of a spoon
     // it no longer fills.
-    if (stepped.ratio !== 1) return inUnit(stepped.unit, stepped.ratio);
+    if (stepped.ratio !== 1 && !underFloor) return inUnit(stepped.unit, stepped.ratio);
 
+    const ratio = underFloor ? stepped.ratio : 1;
     const bounds = raws.map((raw, index) => {
-      const ceiling = factor < 1 ? sources[index]! : Number.POSITIVE_INFINITY;
-      const rounded = roundSpoon(raw, ceiling);
-      return { amount: rounded.value, exact: raw, clamped: rounded.clamped, raw };
+      const exact = raw * ratio;
+      const ceiling = factor < 1 ? sources[index]! * ratio : Number.POSITIVE_INFINITY;
+      const rounded = roundSpoon(exact, ceiling);
+      return { amount: rounded.value, exact, clamped: rounded.clamped, raw };
     });
-    return { bounds, unit };
+    return { bounds, unit: underFloor ? stepped.unit : unit };
   }
 
   const bounds = raws.map((raw, index) => {
@@ -597,11 +617,21 @@ function toSingular(word: string): string {
 /** How a line writes the choice between two quantities: "2 Tbsp butter OR 30 g margarine". */
 const BRANCH_SEPARATOR = /\s+or\s+/gi;
 
+/**
+ * The same choice written inside brackets: "4 eggs (or 8 egg yolks)".
+ *
+ * The bracket is what hides it from a rule looking for a bare "or": nothing
+ * separates the word from the text before it but the opening bracket.
+ */
+const BRACKETED_BRANCH = /\s*\((?:or|alternatively)[,]?\s+/gi;
+
 interface Branch {
   head: string;
   /** The separator as published, so the rewrite reads the way the line did. */
   separator: string;
   tail: string;
+  /** What closes the choice and follows it, empty when the line ends on it. */
+  close: string;
 }
 
 /**
@@ -622,7 +652,23 @@ function splitBranch(text: string, parsed: ParsedIngredient): Branch | null {
     if (match.index < itemStart) continue;
     const tail = text.slice(match.index + match[0].length);
     if (parseIngredient(tail).amount === null) continue;
-    return { head: text.slice(0, match.index), separator: match[0], tail };
+    return { head: text.slice(0, match.index), separator: match[0], tail, close: "" };
+  }
+
+  BRACKETED_BRANCH.lastIndex = 0;
+  for (let match = BRACKETED_BRANCH.exec(text); match; match = BRACKETED_BRANCH.exec(text)) {
+    if (match.index < itemStart) continue;
+    const opens = match.index + match[0].length;
+    const closes = text.indexOf(")", opens);
+    if (closes < 0) continue;
+    const tail = text.slice(opens, closes);
+    if (parseIngredient(tail).amount === null) continue;
+    return {
+      head: text.slice(0, match.index),
+      separator: match[0],
+      tail,
+      close: text.slice(closes),
+    };
   }
   return null;
 }
@@ -665,7 +711,7 @@ function scaleBranchedLine(line: string, branch: Branch, options: ScaleOptions):
   const result: ScaledIngredient = {
     ...head,
     original: line,
-    text: `${head.text}${branch.separator}${tail.text}`,
+    text: `${head.text}${branch.separator}${tail.text}${branch.close}`,
     scaling: "rounded",
   };
 
@@ -674,9 +720,31 @@ function scaleBranchedLine(line: string, branch: Branch, options: ScaleOptions):
       "How far one stands for the other is the page's own claim."
     : "This line carries a further quantity after the first one, and only the first was scaled. " +
       "Read the rest as published.";
-  result.note = head.note ? `${head.note} ${branchNote}` : branchNote;
+  // What the branch itself could not carry is said here too. A branch reading
+  // "1½ cup cream + 1½ cup water" holds two amounts and only the first moves,
+  // and the cook who takes that branch is the one who cannot see it.
+  result.note = joinNotes(head.note, branchNote, tail.note);
 
   return result;
+}
+
+/**
+ * Put notes together, saying each sentence once.
+ *
+ * A branch carries its own reading of the same line, so the branch and the
+ * whole often have the same thing to say. Repeated, the sentence reads as two
+ * separate findings and the caller counts a problem twice.
+ */
+function joinNotes(...notes: Array<string | undefined>): string {
+  const seen: string[] = [];
+  for (const note of notes) {
+    if (note === undefined) continue;
+    for (const sentence of note.split(/(?<=\.)\s+/)) {
+      const trimmed = sentence.trim();
+      if (trimmed !== "" && !seen.includes(trimmed)) seen.push(trimmed);
+    }
+  }
+  return seen.join(" ");
 }
 
 /**
@@ -690,7 +758,7 @@ function scaleBranchedLine(line: string, branch: Branch, options: ScaleOptions):
 function scaleAlternative(
   tail: string,
   options: ScaleOptions,
-): { text: string; rewritten: boolean } {
+): { text: string; rewritten: boolean; note?: string } {
   const parsed = parseIngredient(tail);
   const published = tail.trim();
   if (parsed.amount === null) return { text: published, rewritten: false };
@@ -698,7 +766,10 @@ function scaleAlternative(
   const largest = (parsed.amountMax ?? parsed.amount) * options.factor;
   if (largest < 1) return { text: published, rewritten: false };
 
-  return { text: scaleIngredient(tail, options).text, rewritten: true };
+  const scaled = scaleIngredient(tail, options);
+  return scaled.note === undefined
+    ? { text: scaled.text, rewritten: true }
+    : { text: scaled.text, rewritten: true, note: scaled.note };
 }
 
 /** Why a line showing a figure came back as the page published it. */
@@ -714,9 +785,49 @@ const HELD_BACK_NOTE: Record<HeldBack, string> = {
     "another, and the line gives no sign which was meant, so it is left as published.",
 };
 
+/** What a line says when its only figure is the indication it puts in brackets. */
+const INDICATION_NOTE =
+  "This line asks for no fixed amount and gives an indication in brackets of how much that " +
+  "usually comes to.";
+
+/**
+ * Scale a line whose only quantity is the indication it states in brackets.
+ *
+ * The head of such a line tells the cook how to decide and never how much, so
+ * it is left word for word; the figure beside it is a quantity like any other
+ * and grows with the recipe. Left alone it would put the water of a doubled
+ * dough at half what the flour needs.
+ */
+function scaleBracketedIndication(
+  parsed: ParsedIngredient,
+  indication: BracketedIndication,
+  factor: number,
+): ScaledIngredient {
+  const text = parsed.readable;
+  const scaled = renderMeasure(indication.measure, factor);
+  const bound = scaled.bounds[0]!;
+
+  return {
+    text: `${text.slice(0, indication.start)}(${indication.lead}${scaled.text})${text.slice(indication.end)}`,
+    original: parsed.original,
+    scaling: scaled.bounds.every((entry) => landedExactly(entry.exact, entry.amount))
+      ? "scaled"
+      : "rounded",
+    amount: bound.amount,
+    amountMax: scaled.bounds[1]?.amount ?? null,
+    unit: indication.measure.unit?.canonical ?? null,
+    note: `${INDICATION_NOTE} That indication was scaled with the recipe; the wording in front of it is what the page asks for.`,
+  };
+}
+
 function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient {
   const { factor } = options;
   const parsed = parseIngredient(line);
+
+  if (parsed.amount === null && parsed.heldBack === null) {
+    const indication = readBracketedIndication(parsed.readable);
+    if (indication) return scaleBracketedIndication(parsed, indication, factor);
+  }
 
   if (parsed.amount === null || parsed.heldBack) {
     return {
@@ -798,16 +909,16 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
    * reads as the exact product while being a different number.
    */
   const asPublished = (value: number, source: UnitInfo | null) =>
-    `${formatAmount(Math.round(value * 1000) / 1000, { fractions: false })}${
-      source ? ` ${formatUnit(source, value)}` : ""
-    }`;
+    `${noteFigure(value)}${source ? ` ${formatUnit(source, value)}` : ""}`;
 
   const sentences: string[] = [];
 
   if (clamped) {
+    // Both figures are stated in the unit the line now reads in, `exact` being
+    // the product expressed there, so the note and the line can be compared.
     sentences.push(
       `Clamped up to ${formatAmount(clamped.amount)} from ` +
-        `${formatAmount(Math.round(clamped.raw * 1000) / 1000)}, the smallest amount worth ` +
+        `${noteFigure(clamped.exact)}, the smallest amount worth ` +
         "measuring. This line no longer holds its share of the recipe.",
     );
   } else if (movedPrimary) {
@@ -966,8 +1077,16 @@ export function passthroughIngredient(line: string): ScaledIngredient {
     unit: held ? null : (parsed.unit?.canonical ?? null),
   };
   if (parsed.heldBack) result.note = HELD_BACK_NOTE[parsed.heldBack];
-  else if (parsed.amount === null) result.note = "No quantity given; adjust to taste.";
-  else if (parsed.unit?.kind === "approximate") {
+  else if (parsed.amount === null) {
+    // The bracket speaks for the whole line only where the line offers no
+    // choice: on "6 eggs or ½ pint (300 ml) of cream" it belongs to the second
+    // branch, and scaling reads that line branch by branch.
+    const indication =
+      splitBranch(parsed.readable, parsed) === null
+        ? readBracketedIndication(parsed.readable)
+        : null;
+    result.note = indication ? INDICATION_NOTE : "No quantity given; adjust to taste.";
+  } else if (parsed.unit?.kind === "approximate") {
     result.note = withApproximateNote(parsed.unit, undefined);
   }
   return result;

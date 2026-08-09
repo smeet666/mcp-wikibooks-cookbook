@@ -17,9 +17,26 @@ import { REPO_URL } from "../version.js";
 import type { PageSummary, RecipePage } from "../types.js";
 import { Cache } from "./cache.js";
 import { fetchJson } from "./http.js";
-import { toRecipePage, toSearchResults } from "./parse.js";
+import { parseFailure } from "../errors.js";
+import { toPageDocument, toSearchResults } from "./parse.js";
 import { RateLimiter } from "./rateLimiter.js";
-import { MAX_SEARCH_LIMIT, pageSourceUrl, searchPageUrl, searchTitleUrl } from "./urls.js";
+import {
+  MAX_SEARCH_LIMIT,
+  normaliseKey,
+  pageSourceUrl,
+  searchPageUrl,
+  searchTitleUrl,
+} from "./urls.js";
+
+/**
+ * How many redirect pages are walked before a read gives up.
+ *
+ * A redirect pointing at a redirect is an editing accident the wiki fixes in
+ * time, and a handful of hops covers every chain worth following. The ceiling
+ * is what keeps a pair of pages pointing at each other from spending a
+ * caller's whole request on the same two addresses.
+ */
+const MAX_REDIRECT_HOPS = 4;
 
 export interface ClientOptions {
   config?: Partial<Config>;
@@ -183,13 +200,52 @@ export class CookbookClient {
     };
   }
 
-  /** Read one page as wikitext and turn it into a recipe. */
-  getRecipe(reference: string): Promise<Read<RecipePage>> {
+  /**
+   * Read one page as wikitext and turn it into a recipe.
+   *
+   * A page that redirects carries a pointer and no recipe, so the pointer is
+   * followed to the page a reader visiting that address would land on. Every
+   * address walked on the way is reported, because the recipe returned is not
+   * the one the caller named.
+   */
+  async getRecipe(reference: string): Promise<Read<RecipePage>> {
     const trimmed = reference.trim();
-    if (trimmed === "") {
-      return Promise.reject(invalidInput("A page name or key is required."));
+    if (trimmed === "") throw invalidInput("A page name or key is required.");
+
+    const walked: string[] = [];
+    const visited = new Set<string>([normaliseKey(trimmed)]);
+    let target = trimmed;
+    let cached = true;
+
+    for (let hop = 0; hop < MAX_REDIRECT_HOPS; hop += 1) {
+      const url = pageSourceUrl(target);
+      const read = await this.read(url, (payload) => toPageDocument(payload, url));
+      cached = cached && read.cached;
+
+      if (read.data.kind === "recipe") {
+        const data = { ...read.data.page, redirectedFrom: walked };
+        return read.skipped === undefined
+          ? { data, cached }
+          : { data, cached, skipped: read.skipped };
+      }
+
+      walked.push(read.data.key);
+      target = read.data.target;
+      const next = normaliseKey(target);
+      if (visited.has(next)) {
+        throw parseFailure(
+          `${read.data.key} redirects to ${target}, which leads back to a page already read, so no recipe page is reachable from here. The addresses walked were ${walked.join(" → ")}.`,
+          { url },
+        );
+      }
+      visited.add(next);
     }
-    const url = pageSourceUrl(trimmed);
-    return this.read(url, (payload) => toRecipePage(payload, url));
+
+    throw parseFailure(
+      // The count is read off the addresses rather than off the ceiling, so the
+      // two halves of the sentence can never state different numbers.
+      `The redirects were followed ${walked.length} times without reaching a recipe, stopping at ${target}. The addresses walked were ${walked.join(" → ")}.`,
+      { url: pageSourceUrl(target) },
+    );
   }
 }

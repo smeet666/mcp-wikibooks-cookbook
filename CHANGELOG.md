@@ -1,5 +1,173 @@
 # Changelog
 
+## 1.3.0
+
+- Keep the ingredient a template call names. A Cookbook page can write the name
+  of an ingredient as `{{cb|apple}}`, which the wiki expands to a link showing
+  that word, and the call was removed with the word inside it: the page
+  `Cookbook:Homemade Cider Vinegar` asked for "4 kg (8.8 lb) fresh s". A line
+  whose whole content was such a call disappeared from the list with no trace
+  and no count, which is the answer somebody avoiding an ingredient acts on. The
+  call now contributes the word it puts on the page, and a bullet that still
+  comes back empty is counted and named in a note rather than dropped.
+
+- Scale the quantity a line states in brackets while asking for no fixed amount.
+  `Warm water as required (about 1 ½ cups)` was answered "No quantity given;
+  adjust to taste", so the flour of a doubled chapati doubled and the water did
+  not. The bracket is read when everything inside it is one amount with a unit,
+  which leaves "(about 110 °F)" and "(the riper the better)" as the prose they
+  are; the figure grows with the recipe and the wording in front of it is
+  repeated as published.
+
+- Scale both branches of a choice written in brackets. `4 eggs (or 8 egg yolks)`
+  tripled gave "12 eggs (or 8 egg yolks)", and a cook taking the second branch
+  got a third of the recipe; the same choice written without brackets was
+  already handled. A bracket opening on "or" now splits the line the same way,
+  each branch is scaled on its own, and the line says how far one stands for the
+  other is the page's claim. A quantity written with a fraction character, as in
+  "1½ cup", is recognised where it sits inside a branch, so a second amount left
+  as published is named instead of passing unremarked.
+
+- Say what a page has to carry before its lists are called a recipe's. The
+  Cookbook keeps recipes and the book's own chapter indexes in one namespace and
+  both write "Ingredients" over a bulleted list, so `Cookbook:Table of Contents`
+  came back with twelve ingredients, five pieces of equipment and a note stating
+  that the page publishes ingredients. A page with no recipe box, no recipe
+  banner and no procedure now returns empty lists and says the bullets under its
+  headings are links to other pages.
+
+- Stop telling a recipe it may not be one. `Cookbook:Banana Bread III` states a
+  yield, a difficulty and seven numbered steps, and its shopping list sits under
+  a heading of the page's own choosing; the answer offered "It may be a page
+  about an ingredient, a technique or a cuisine rather than a recipe". Such a
+  page is now named as a recipe whose list was not found, and the headings it
+  does publish are named so the list can be read where the page put it.
+
+- Read a heading only where a reader would see one. A heading parked inside an
+  HTML comment while a page is being rewritten is invisible on the page, and it
+  opened a section all the same: the ingredient list was cut at the comment and
+  the rest of it filed under the procedure. Comments are removed before the page
+  is divided into sections. No page of the Cookbook was found doing this, and
+  the mechanism was reproduced on a page written for the purpose.
+
+- Name the sections a page carries beside the ones read. A heading owns what is
+  nested under it and stops at the next heading of its own level, so a page
+  writing its ingredients twice at the top level publishes two recipes and only
+  the first was returned, in silence. What was left is now named in a note:
+  merging the two would build a list nobody would cook, and saying nothing hands
+  back half a page as the page. No Cookbook page was found carrying two recipes
+  this way; `Cookbook:Broth and Stock` loses a second "Ingredient" section to the
+  same rule and now says so.
+
+- Say what a title search matched on. Searching titles for "aubergine" returns
+  `Cookbook:Eggplant`, and the answer said the row had "matched inside the page
+  rather than in the title" on a search that opens no page. A row whose name does
+  not carry the words is now named for what it is: a page the Cookbook files
+  under another name.
+
+- Read the amount a page writes as a template call. A Cookbook page states its
+  oven temperature and many of its weights through `{{convert}}`, and its
+  fractions through `{{frac}}`, which puts the only figure in the sentence
+  inside the call. The call was removed with everything in it, so a recipe read
+  "Preheat the oven to ." and asked for "1 cup () white sugar": an instruction
+  and a shopping line that both look finished and carry no number. What comes
+  back is the value and the unit the page wrote, both ends of a range included.
+  The counterpart such a template computes belongs to the other measuring
+  system and is left out, since measurements here are repeated in the system
+  the source chose.
+
+- Tell an alternative ingredient list from a part of the dish. Both are written
+  as a sub-heading under the ingredients, and only the wording separates them: a
+  cake and its glaze are made together, a first and a second version of a salad
+  replace one another. Read alike, three versions of a tuna salad became one
+  list of nineteen lines, three tins of fish and two and a half cups of
+  mayonnaise, under a procedure whose first step is "Mix all ingredients in a
+  bowl". A heading naming a variation, a version, an option or a substitution
+  now opens a list of its own: every line says which one it came from as
+  `variant`, `group` stays null on those lines because they name no part of the
+  dish, the lists are printed apart, and a note says one of them is used instead
+  of the others. Stated as a rule over the wording rather than as a list of the
+  headings met so far.
+
+- Say what a total time can honestly claim. The recipe box holds one field, and
+  a page with more than one thing to say writes several durations into it,
+  separated by a line break: "Prep: 1 hour", "Fermentation: 12–24 hours",
+  "Cooking: 5 minutes". The break was removed without a space, gluing "1 hour"
+  to the next label until it stopped being a duration, and what was left was
+  read as the time of the whole dish: ten minutes for a ravioli that takes an
+  hour to make, five for an injera whose batter sours overnight. Each duration
+  is now read on its own and published in `time_phases`, with the page's own
+  wording and both ends of a range; `prep_minutes` and `cook_minutes` carry the
+  phases the page labels as such. `total_minutes` states a total only where the
+  page states one, as a single duration or as a phase the page itself calls the
+  total. Phases are never added: a fermentation, a marinade and a rest measure
+  different things from a cooking, and their sum is a figure no page published.
+  Where the total is null and the phases are not, a note says so.
+- Read an ingredient list that a page splits across sub-headings. A heading on a
+  wiki owns the sections nested under it, and the list was cut at the first
+  sub-heading: a cake with its soak and its glaze under `=== Cake ===`,
+  `=== Soak ===` and `=== Glaze ===` came back with no ingredients at all, on a
+  page carrying ten, and the same cut emptied the equipment, the steps and the
+  notes of any page that groups them. Every part now covers what is nested under
+  it, stopping at a nested heading that names another part of the recipe: a page
+  filing its procedure one level under its ingredients still states steps, not
+  things to buy. Each line carries the sub-heading it sits under as `group`, so
+  two tablespoons of rum for the soak and two for the glaze read as the recipe
+  rather than as a repeat.
+
+- Follow a page whose only content is a redirect. `Cookbook:Carbonara` points at
+  `Cookbook:Spaghetti alla Carbonara`, and it was read as a recipe with a title,
+  no ingredients and no steps, which is what a dish the Cookbook does not hold
+  looks like. The pointer is followed to the page a reader would land on; `id`
+  names the page that was read, `redirected_from` names the addresses walked,
+  and a note says the hop was made. A chain that loops or keeps going is
+  refused, naming the addresses it walked, rather than answering with the shell
+  it ended on.
+
+- Read an abbreviated unit carrying a plural mark. `Cookbook:Bánh chưng` writes
+  "1 tbsp vegetable oil" and "3 tbsps fried shallot" three lines apart, and only
+  the first was recognised as a spoon: the other went to the branch that counts
+  indivisible objects, where a quarter of a spoonful was clamped up to the
+  "1/2 tbsps" no kitchen owns. Every abbreviation now answers to the plural mark
+  a page writes on it, so two neighbouring lines of one page are scaled by the
+  same rule.
+
+- Put a floor under a spoonful. A cup divided a thousandfold walked down to the
+  smallest spoon and stopped at "0.05 teaspoon flour", where a clove of garlic
+  in the same recipe was clamped up to a half and said it no longer held its
+  share. A spoon measure that reaches the bottom of its ladder still under what
+  a measuring set carries is now clamped the same way and says the same thing.
+  Figures a note quotes are written with the digits they have: an amount too
+  small for the two decimals a note prints was rendered "0", so a line read
+  "Rounded up from 0 cup" beside a quantity that was not zero, and the clamped
+  amount is stated in the unit the line came back in.
+
+- Count a tin as the container it is. The vocabulary carried the can and not the
+  tin, so `Cookbook:Pizza Soup` and `Cookbook:Vegetable Stew and Dumplings` had
+  their tin read as no measure at all and the question of how far one divides
+  fell to what was inside it: a quarter of a tin of tomatoes, because a tomato
+  is quartered. A tin now divides as a can does, at the half. The tool
+  description and the shape of a scaled line state the three shares a counted
+  thing can land on, which is what the code applies.
+
+- Read a page reference the way the wiki reads an address. A title opens on a
+  capital and an anchor names a section of a page rather than a page, and the
+  gateway answers a reference in either shape by pointing at the form below;
+  followed, that pointer led to a page in HTML, and a mistyped identifier came
+  back as `parse_failure` blaming Wikimedia and inviting a bug report.
+  `Cookbook:Whole Wheat Pancakes#Ingredients` now reads the recipe, a lowercase
+  first letter is raised, and a name the Cookbook does not hold is the
+  `not_found` it always was.
+
+- Answer for the words a page publishes and the numbers it states. A yield of
+  "1/2" was read as one serving counted in "/2", so every quantity was rescaled
+  from twice the yield; the fraction is now read as the number it is. Text
+  quoted inside `<blockquote>` comes back as the sentence a reader sees. A
+  template standing in a sentence contributes the words it shows: an interwiki
+  link and a phrase marked as foreign kept their brackets and lost their word,
+  and a call that renders nothing left the brackets it stood in sitting empty.
+  The redirect ceiling states as many hops as it lists addresses.
+
 ## 1.2.0
 
 - Decode the HTML entities a page writes for a character it cannot type. A line

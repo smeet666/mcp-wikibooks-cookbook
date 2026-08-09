@@ -104,6 +104,22 @@ describe("a container holding enough for a quarter to be a portion", () => {
   it("still stops a can at the half", () => {
     expect(scale("1 can tomatoes", 0.25).amount).toBe(0.5);
   });
+
+  // A tin is the can under its other name, and the tin is what the line
+  // counts. Read as the word for nothing, the question falls through to what
+  // the tin holds, and a tin of tomatoes divides the way a tomato does.
+  it("stops a tin at the half, wherever the word for the can comes from", () => {
+    const result = scale("1 tin tomatoes", 0.25);
+    expect(result.amount).toBe(0.5);
+    expect(result.unit).toBe("tin");
+    expect(result.text).toBe("1/2 tin tomatoes");
+  });
+
+  it("scales the weight a tin states beside it", () => {
+    expect(scale("1 tin (400 g) tomatoes, chopped", 0.25).text).toBe(
+      "1/2 tin (100 g) tomatoes, chopped",
+    );
+  });
 });
 
 describe("a dozen states how many things are counted", () => {
@@ -165,5 +181,15 @@ describe("what the criterion already settled stays settled", () => {
 
   it("takes an onion to a quarter", () => {
     expect(scale("1 onion", 0.25).amount).toBe(0.25);
+  });
+});
+
+describe("a leaf, whichever leaf it names", () => {
+  it("splits a bay leaf in two, as a pair of scissors does", () => {
+    expect(scale("1 bay leaf", 1.5).text).toBe("1 1/2 bay leaves");
+  });
+
+  it("splits a sheet of gelatine the same way", () => {
+    expect(scale("1 sheet of gelatine", 1.5).amount).toBe(1.5);
   });
 });

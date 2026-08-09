@@ -63,23 +63,40 @@ export function pageSourceUrl(key: string): string {
  * bare recipe name. The namespace is added when it is missing, so a request
  * for "Spaghetti alla Carbonara" reaches the Cookbook rather than the root of
  * the wiki, where a page of that name does not exist.
+ *
+ * Two more things the wiki settles about an address are settled here, because
+ * the gateway answers a reference in either shape with a redirect to the form
+ * below rather than with the page: a title opens on a capital, and an anchor
+ * names a section of a page rather than a page.
  */
 export function normaliseKey(reference: string): string {
-  const trimmed = reference.trim().replace(/[\s_]+/g, " ");
+  const anchored = reference.indexOf("#");
+  const named = anchored < 0 ? reference : reference.slice(0, anchored);
+  const trimmed = named.trim().replace(/[\s_]+/g, " ");
 
   // Spelled with the namespace already: normalise its case and spacing.
   if (/^cookbook\s*:/i.test(trimmed)) {
     const rest = trimmed.slice(trimmed.indexOf(":") + 1).trimStart();
-    return `${COOKBOOK_PREFIX}${rest}`.replace(/ /g, "_");
+    return `${COOKBOOK_PREFIX}${capitalise(rest)}`.replace(/ /g, "_");
   }
 
-  // Spelled with some other namespace, or with a book's path: left alone, since
-  // adding "Cookbook:" would name a page that does not exist.
-  if (/^[A-Za-z][A-Za-z ]{1,20}:/.test(trimmed) || trimmed.includes("/")) {
-    return trimmed.replace(/ /g, "_");
-  }
+  // Spelled with some other namespace, or with a book's path: the namespace is
+  // left alone, since adding "Cookbook:" would name a page that does not exist.
+  const other = /^([A-Za-z][A-Za-z ]{1,20}:)(.*)$/.exec(trimmed);
+  if (other) return `${other[1]}${capitalise(other[2] ?? "")}`.replace(/ /g, "_");
+  if (trimmed.includes("/")) return capitalise(trimmed).replace(/ /g, "_");
 
-  return `${COOKBOOK_PREFIX}${trimmed}`.replace(/ /g, "_");
+  return `${COOKBOOK_PREFIX}${capitalise(trimmed)}`.replace(/ /g, "_");
+}
+
+/**
+ * Raise the first letter of a title, which is the only letter of it the wiki
+ * decides. The rest is the caller's, since "Whole Wheat Pancakes" and "Whole
+ * wheat pancakes" are two addresses and at most one of them holds a page.
+ */
+function capitalise(title: string): string {
+  const text = title.trimStart();
+  return text === "" ? text : text[0]!.toUpperCase() + text.slice(1);
 }
 
 /** Whether a key names a page inside the Cookbook. */

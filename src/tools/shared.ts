@@ -36,7 +36,8 @@ export const scaledIngredientSchema = z.object({
     .enum(["scaled", "rounded", "unscaled"])
     .describe(
       "'scaled' means the arithmetic was exact. 'rounded' means a countable item was moved to a " +
-        "whole or half unit, or a measurement was demoted to a smaller unit to stay usable. " +
+        "whole, a half or a quarter, whichever is the smallest share a cook takes out of one of " +
+        "it, or a measurement was demoted to a smaller unit to stay usable. " +
         "'unscaled' means the line carries nothing that can be multiplied and was left alone.",
     ),
   amount: z
