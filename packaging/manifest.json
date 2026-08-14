@@ -2,7 +2,7 @@
   "manifest_version": "0.3",
   "name": "mcp-wikibooks-cookbook",
   "display_name": "Wikibooks Cookbook",
-  "version": "1.3.0",
+  "version": "1.3.1",
   "description": "MCP server for the Wikibooks Cookbook. Search recipes, read ingredients and steps, and rescale quantities without ending up with 2.4 eggs. No API key required.",
   "long_description": "Search the Cookbook on the English Wikibooks, read a page's ingredients, equipment and steps, browse by cuisine, kind of dish or main ingredient, and rescale an ingredient list to the number of servings you actually want. No API key, no account.\n\nThe arithmetic is the part worth having. A countable thing lands where a kitchen can follow it, an egg on a whole one and a clove of garlic on a half. A small measurement moves to a smaller unit before it is rounded, so it never disappears. A sealed packet is never cut in two. An approximate measure such as a pinch is multiplied as pinches rather than converted. Both figures on a line that publishes two are scaled together. Anything that cannot be multiplied comes back flagged instead of multiplied.\n\nCookbook pages are published under Creative Commons Attribution-ShareAlike 4.0, and every recipe carries its licence and its page address so it can be credited and shared alike.",
   "author": {
