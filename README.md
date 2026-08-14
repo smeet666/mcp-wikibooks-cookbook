@@ -2,9 +2,11 @@
 
 [![npm](https://img.shields.io/npm/v/mcp-wikibooks-cookbook.svg)](https://www.npmjs.com/package/mcp-wikibooks-cookbook)
 [![CI](https://github.com/smeet666/mcp-wikibooks-cookbook/actions/workflows/ci.yml/badge.svg)](https://github.com/smeet666/mcp-wikibooks-cookbook/actions/workflows/ci.yml)
-[![license](https://img.shields.io/npm/l/mcp-wikibooks-cookbook.svg)](LICENSE)
+[![license](https://img.shields.io/npm/l/mcp-wikibooks-cookbook.svg)](./LICENSE)
 [![MCP Registry](https://img.shields.io/badge/MCP_Registry-listed-6E56CF)](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.smeet666/mcp-wikibooks-cookbook)
 [![Glama](https://glama.ai/mcp/servers/smeet666/mcp-wikibooks-cookbook/badges/score.svg)](https://glama.ai/mcp/servers/smeet666/mcp-wikibooks-cookbook)
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](https://cursor.com/en/install-mcp?name=wikibooks-cookbook&config=eyJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsIm1jcC13aWtpYm9va3MtY29va2Jvb2siXX0%3D)
+[![Install in VS Code](https://img.shields.io/badge/VS_Code-Install-0098FF?style=flat&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=wikibooks-cookbook&config=%7B%22name%22%3A%22wikibooks-cookbook%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22mcp-wikibooks-cookbook%22%5D%7D)
 
 An MCP server for the [Cookbook](https://en.wikibooks.org/wiki/Cookbook:Table_of_Contents) on
 the English Wikibooks: thousands of recipes written and maintained in the open, with their
