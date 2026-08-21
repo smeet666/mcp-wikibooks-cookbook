@@ -107,11 +107,13 @@ export function numbersIn(text: string): number[] {
   return (text.match(/\d+(?:[.,]\d+)?/g) ?? []).map((raw) => Number(raw.replace(",", ".")));
 }
 
-export function structuredOf(result: { structuredContent?: Record<string, unknown> }): Record<
-  string,
-  unknown
-> {
-  expect(result.structuredContent, "a successful tool result carries a structured payload").toBeDefined();
+export function structuredOf(result: {
+  structuredContent?: Record<string, unknown>;
+}): Record<string, unknown> {
+  expect(
+    result.structuredContent,
+    "a successful tool result carries a structured payload",
+  ).toBeDefined();
   return result.structuredContent as Record<string, unknown>;
 }
 
@@ -120,11 +122,10 @@ export function textOf(result: { content: Array<{ type: "text"; text: string }> 
 }
 
 /** A fetch that answers from the fixture corpus and records what it was asked. */
-export function gatewayFetch(answers: {
-  search?: unknown;
-  page?: unknown;
-  status?: number;
-}): { fetchImpl: typeof fetch; urls: string[] } {
+export function gatewayFetch(answers: { search?: unknown; page?: unknown; status?: number }): {
+  fetchImpl: typeof fetch;
+  urls: string[];
+} {
   const urls: string[] = [];
   const fetchImpl = (async (input: unknown) => {
     const url = String(input);

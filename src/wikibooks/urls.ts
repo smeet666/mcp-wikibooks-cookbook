@@ -96,7 +96,7 @@ export function normaliseKey(reference: string): string {
  */
 function capitalise(title: string): string {
   const text = title.trimStart();
-  return text === "" ? text : text[0]!.toUpperCase() + text.slice(1);
+  return text === "" ? text : (text[0] ?? "").toUpperCase() + text.slice(1);
 }
 
 /** Whether a key names a page inside the Cookbook. */

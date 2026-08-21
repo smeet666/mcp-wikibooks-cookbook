@@ -184,7 +184,6 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         throw networkError(`Could not reach the Wikimedia gateway: ${lastError.message}`, { url });
       }
       askedWaitMs = backoffMs(attempt);
-      continue;
     } finally {
       clearTimeout(deadline);
     }

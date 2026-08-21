@@ -167,9 +167,10 @@ function headedChunks(sections: Section[], test: RegExp): SectionChunk[] {
  * nobody would cook, and saying nothing hands back half a page as the page.
  */
 function unreadSiblingSections(sections: Section[], test: RegExp): string[] {
-  const at = sections.findIndex((section) => section.level > 0 && test.test(section.title));
-  if (at < 0) return [];
-  const level = sections[at]!.level;
+  const found = sections.find((section) => section.level > 0 && test.test(section.title));
+  const at = found === undefined ? -1 : sections.indexOf(found);
+  if (found === undefined) return [];
+  const level = found.level;
 
   return sections
     .slice(at + 1)

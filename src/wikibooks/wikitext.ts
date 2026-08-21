@@ -695,7 +695,9 @@ function readTableBlock(lines: string[]): WikiTable {
       closeCell();
       const heading = trimmed.startsWith("!");
       const parts = trimmed.slice(1).split(heading ? "!!" : "||");
-      parts.slice(0, -1).forEach((part) => row.push(cleanCell(part)));
+      parts.slice(0, -1).forEach((part) => {
+        row.push(cleanCell(part));
+      });
       cell = [parts[parts.length - 1] ?? ""];
       // A row holding one heading cell holds a heading row: the marker is per
       // cell, and a row mixing the two is a body row with a label in it.

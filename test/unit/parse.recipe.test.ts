@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CookbookError } from "../../src/errors.js";
+import type { CookbookError } from "../../src/errors.js";
 import {
   parseMinutes,
   readNutrition,
