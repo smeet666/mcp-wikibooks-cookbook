@@ -67,7 +67,9 @@ export function toScaledIngredientOut(entry: ScaledIngredient): ScaledIngredient
     amount_max: entry.amountMax,
     unit: entry.unit,
   };
-  if (entry.note !== undefined) out.note = entry.note;
+  if (entry.note !== undefined) {
+    out.note = entry.note;
+  }
   return out;
 }
 
@@ -105,7 +107,9 @@ export function ok(
 
   // A long run of notes must not crowd out the answer it qualifies.
   const noteLines = (options.notes ?? []).map((note) => `Note: ${note}`);
-  while (noteLines.length > 0 && noteLines.join("\n").length > MAX_TEXT_CHARS / 2) noteLines.pop();
+  while (noteLines.length > 0 && noteLines.join("\n").length > MAX_TEXT_CHARS / 2) {
+    noteLines.pop();
+  }
   const trailer = [...noteLines, credit].join("\n");
 
   const cut = "\n\n[shortened; the full result is in the structured output]";
@@ -130,17 +134,21 @@ export function toToolError(error: unknown): ToolResult {
       : new CookbookError("network_error", error instanceof Error ? error.message : String(error));
 
   const lines = [`[${known.code}] ${known.message}`];
-  if (known.details.hint) lines.push(`Hint: ${known.details.hint}`);
+  if (known.details.hint) {
+    lines.push(`Hint: ${known.details.hint}`);
+  }
   return { content: [{ type: "text", text: lines.join("\n") }], isError: true };
 }
 
 export function truncate(text: string, maxChars: number): string {
-  if (text.length <= maxChars) return text;
+  if (text.length <= maxChars) {
+    return text;
+  }
   return `${text.slice(0, Math.max(0, maxChars - 1)).trimEnd()}…`;
 }
 
 /** A compact listing, carrying what it takes to pick one page out of many. */
-export function renderResults(rows: Array<z.infer<typeof searchResultSchema>>): string {
+export function renderResults(rows: z.infer<typeof searchResultSchema>[]): string {
   return rows
     .map((row, index) => {
       const head = [`${index + 1}. ${row.title}`, row.description ? `· ${row.description}` : ""]

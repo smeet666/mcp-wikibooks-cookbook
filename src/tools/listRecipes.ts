@@ -75,9 +75,15 @@ export function buildBrowseQuery(args: {
   const dish = args.dish_type?.trim();
   const ingredient = args.main_ingredient?.trim();
 
-  if (cuisine) parts.push(`${cuisine} recipes`);
-  if (dish) parts.push(`recipes for ${dish}`);
-  if (ingredient) parts.push(`recipes using ${ingredient}`);
+  if (cuisine) {
+    parts.push(`${cuisine} recipes`);
+  }
+  if (dish) {
+    parts.push(`recipes for ${dish}`);
+  }
+  if (ingredient) {
+    parts.push(`recipes using ${ingredient}`);
+  }
 
   return parts.join(" ");
 }
@@ -98,7 +104,9 @@ export async function runListRecipes(
     const { data, cached, skipped } = await client.search(query, args.limit, "text");
 
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     if (skipped) {
       notes.push(
         `${skipped} row(s) came back in a shape this server could not read and were left out.`,

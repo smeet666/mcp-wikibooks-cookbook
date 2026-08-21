@@ -83,8 +83,12 @@ export function normaliseKey(reference: string): string {
   // Spelled with some other namespace, or with a book's path: the namespace is
   // left alone, since adding "Cookbook:" would name a page that does not exist.
   const other = /^([A-Za-z][A-Za-z ]{1,20}:)(.*)$/.exec(trimmed);
-  if (other) return `${other[1]}${capitalise(other[2] ?? "")}`.replace(/ /g, "_");
-  if (trimmed.includes("/")) return capitalise(trimmed).replace(/ /g, "_");
+  if (other) {
+    return `${other[1]}${capitalise(other[2] ?? "")}`.replace(/ /g, "_");
+  }
+  if (trimmed.includes("/")) {
+    return capitalise(trimmed).replace(/ /g, "_");
+  }
 
   return `${COOKBOOK_PREFIX}${capitalise(trimmed)}`.replace(/ /g, "_");
 }
@@ -105,6 +109,8 @@ export function isCookbookKey(key: string): boolean {
 }
 
 function clampLimit(limit: number): number {
-  if (!Number.isFinite(limit)) return 10;
+  if (!Number.isFinite(limit)) {
+    return 10;
+  }
   return Math.min(MAX_SEARCH_LIMIT, Math.max(1, Math.round(limit)));
 }

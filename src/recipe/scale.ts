@@ -90,9 +90,15 @@ function roundTo(value: number, step: number): number {
  * to 2 would throw away a tenth of the ingredient.
  */
 function roundMeasured(value: number): number {
-  if (value >= 100) return roundTo(value, 5);
-  if (value >= 10) return roundTo(value, 1);
-  if (value >= 1) return roundTo(value, 0.1);
+  if (value >= 100) {
+    return roundTo(value, 5);
+  }
+  if (value >= 10) {
+    return roundTo(value, 1);
+  }
+  if (value >= 1) {
+    return roundTo(value, 0.1);
+  }
   return Math.round(value * 100) / 100;
 }
 
@@ -136,7 +142,9 @@ function roundCountable(
   divisibility: Divisibility,
   ceiling: number,
 ): CountableResult {
-  if (value <= 0) return { value: 0, clamped: false };
+  if (value <= 0) {
+    return { value: 0, clamped: false };
+  }
 
   const floor = SMALLEST_USABLE[divisibility];
 
@@ -148,11 +156,15 @@ function roundCountable(
     // Below the halfway mark the nearest whole is none, and dropping the
     // ingredient is worse than overstating it, so the line keeps one and says
     // it no longer holds its share.
-    if (value < 0.5) return { value: floor, clamped: true };
+    if (value < 0.5) {
+      return { value: floor, clamped: true };
+    }
     return { value: Math.round(value), clamped: false };
   }
 
-  if (value < floor) return { value: floor, clamped: true };
+  if (value < floor) {
+    return { value: floor, clamped: true };
+  }
 
   if (value < 1) {
     // A knife takes a vegetable to quarters and thirds; anything else offers
@@ -163,7 +175,9 @@ function roundCountable(
     );
     let closest = candidates[0] ?? floor;
     for (const candidate of candidates) {
-      if (Math.abs(value - candidate) < Math.abs(value - closest)) closest = candidate;
+      if (Math.abs(value - candidate) < Math.abs(value - closest)) {
+        closest = candidate;
+      }
     }
     return { value: Math.round(closest * 100) / 100, clamped: false };
   }
@@ -176,7 +190,9 @@ function roundCountable(
  * fractions printed on a measuring set.
  */
 function roundSpoon(value: number, ceiling: number): CountableResult {
-  if (value <= 0) return { value: 0, clamped: false };
+  if (value <= 0) {
+    return { value: 0, clamped: false };
+  }
 
   if (value < 1) {
     const candidates = [SMALLEST_USABLE_FRACTION, 1 / 3, 0.5, 2 / 3, 0.75, 1].filter(
@@ -184,7 +200,9 @@ function roundSpoon(value: number, ceiling: number): CountableResult {
     );
     let closest = candidates[0] ?? SMALLEST_USABLE_FRACTION;
     for (const candidate of candidates) {
-      if (Math.abs(value - candidate) < Math.abs(value - closest)) closest = candidate;
+      if (Math.abs(value - candidate) < Math.abs(value - closest)) {
+        closest = candidate;
+      }
     }
     return {
       value: Math.round(closest * 100) / 100,
@@ -209,7 +227,9 @@ function stepDownSpoon(unit: UnitInfo, reference: number): { unit: UnitInfo; rat
 
   while (reference * ratio < 1 && !isHalfStep(reference * ratio)) {
     const step = demoteUnit(current);
-    if (!step) break;
+    if (!step) {
+      break;
+    }
     ratio *= step.per;
     current = step.unit;
   }
@@ -232,7 +252,9 @@ const EXACT_SHARE = 0.005;
 
 function landedExactly(exact: number, amount: number): boolean {
   const gap = Math.abs(exact - amount);
-  if (gap > EXACT_WITHIN) return false;
+  if (gap > EXACT_WITHIN) {
+    return false;
+  }
   return exact === 0 || gap / Math.abs(exact) <= EXACT_SHARE;
 }
 
@@ -349,7 +371,9 @@ function scaleMeasure(
     // A share stated in the smaller spoon is a measurement, and keeps the
     // precision of one rather than being snapped to the fractions of a spoon
     // it no longer fills.
-    if (stepped.ratio !== 1 && !underFloor) return inUnit(stepped.unit, stepped.ratio);
+    if (stepped.ratio !== 1 && !underFloor) {
+      return inUnit(stepped.unit, stepped.ratio);
+    }
 
     const ratio = underFloor ? stepped.ratio : 1;
     const bounds = eachEnd(({ published, raw }) => {
@@ -452,19 +476,35 @@ const HALVED_CUT = /\b(breasts?|thighs?|drumsticks?|wings?|cutlets?|escalopes?)\
  */
 function cloveDivisibility(unit: UnitInfo | null, item: string): Divisibility | null {
   const counted = unit ? unit.canonical === "clove" : /\bcloves?\b/i.test(item);
-  if (!counted) return null;
+  if (!counted) {
+    return null;
+  }
   return /\bgarlic\b/i.test(item) ? "half" : "whole";
 }
 
 function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
   const clove = cloveDivisibility(unit, item);
-  if (clove) return clove;
-  if (unit && !countsBarePieces(unit)) return unitDivisibility(unit);
-  if (WHOLE_ITEM.test(item)) return "whole";
-  if (PORTION_SIZED_ITEM.test(item)) return "whole";
-  if (HALVED_ITEM.test(item)) return "half";
-  if (HALVED_CUT.test(item)) return "half";
-  if (QUARTERED_MEASURE.test(item)) return "quarter";
+  if (clove) {
+    return clove;
+  }
+  if (unit && !countsBarePieces(unit)) {
+    return unitDivisibility(unit);
+  }
+  if (WHOLE_ITEM.test(item)) {
+    return "whole";
+  }
+  if (PORTION_SIZED_ITEM.test(item)) {
+    return "whole";
+  }
+  if (HALVED_ITEM.test(item)) {
+    return "half";
+  }
+  if (HALVED_CUT.test(item)) {
+    return "half";
+  }
+  if (QUARTERED_MEASURE.test(item)) {
+    return "quarter";
+  }
   return QUARTERED_ITEM.test(item) ? "quarter" : "half";
 }
 
@@ -481,7 +521,9 @@ function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
  * water.
  */
 export function agreeWithAmount(item: string, amount: number): string {
-  if (!item) return item;
+  if (!item) {
+    return item;
+  }
 
   const comma = item.indexOf(",");
   const head = comma < 0 ? item : item.slice(0, comma);
@@ -494,17 +536,23 @@ export function agreeWithAmount(item: string, amount: number): string {
   }
 
   const words = head.trimEnd().split(" ");
-  const last = words[words.length - 1] ?? "";
-  if (!/^[A-Za-z]+$/.test(last) || last.length <= 2) return item;
+  const last = words.at(-1) ?? "";
+  if (!/^[A-Za-z]+$/.test(last) || last.length <= 2) {
+    return item;
+  }
 
   const wantsPlural = amount > 1;
   const plural = toPlural(last);
   const singular = toSingular(last);
   const isPlural = last.toLowerCase() !== singular.toLowerCase();
 
-  if (wantsPlural && !isPlural) words[words.length - 1] = plural;
-  else if (!wantsPlural && isPlural) words[words.length - 1] = singular;
-  else return item;
+  if (wantsPlural && !isPlural) {
+    words[words.length - 1] = plural;
+  } else if (!wantsPlural && isPlural) {
+    words[words.length - 1] = singular;
+  } else {
+    return item;
+  }
 
   return `${words.join(" ")}${tail}`;
 }
@@ -603,7 +651,9 @@ const IRREGULAR_SINGULAR: Record<string, string> = Object.fromEntries(
 
 /** Keep the capitalisation the line used while looking the word up in lower case. */
 function matchCase(source: string, replacement: string): string {
-  if (source[0] === source[0]?.toUpperCase() && source.slice(1) === source.slice(1).toLowerCase()) {
+  const first = source.slice(0, 1);
+  const opensInCapital = first !== "" && first === first.toUpperCase();
+  if (opensInCapital && source.slice(1) === source.slice(1).toLowerCase()) {
     return (replacement[0] ?? "").toUpperCase() + replacement.slice(1);
   }
   return replacement;
@@ -611,30 +661,52 @@ function matchCase(source: string, replacement: string): string {
 
 function toPlural(word: string): string {
   const key = word.toLowerCase();
-  if (INVARIABLE_ITEM.has(key)) return word;
+  if (INVARIABLE_ITEM.has(key)) {
+    return word;
+  }
   const irregular = IRREGULAR_PLURAL[key];
-  if (irregular) return matchCase(word, irregular);
-  if (/(?:ch|sh|s|x|z)$/i.test(word)) return `${word}es`;
-  if (/[^aeiou]y$/i.test(word)) return `${word.slice(0, -1)}ies`;
-  if (/(?:[^f]f|fe)$/i.test(word)) return `${word.replace(/fe?$/i, "")}ves`;
+  if (irregular) {
+    return matchCase(word, irregular);
+  }
+  if (/(?:ch|sh|s|x|z)$/i.test(word)) {
+    return `${word}es`;
+  }
+  if (/[^aeiou]y$/i.test(word)) {
+    return `${word.slice(0, -1)}ies`;
+  }
+  if (/(?:[^f]f|fe)$/i.test(word)) {
+    return `${word.replace(/fe?$/i, "")}ves`;
+  }
   return `${word}s`;
 }
 
 function toSingular(word: string): string {
   const key = word.toLowerCase();
-  if (INVARIABLE_ITEM.has(key)) return word;
+  if (INVARIABLE_ITEM.has(key)) {
+    return word;
+  }
   const irregular = IRREGULAR_SINGULAR[key];
-  if (irregular) return matchCase(word, irregular);
-  if (/ies$/i.test(word) && word.length > 4) return `${word.slice(0, -3)}y`;
+  if (irregular) {
+    return matchCase(word, irregular);
+  }
+  if (/ies$/i.test(word) && word.length > 4) {
+    return `${word.slice(0, -3)}y`;
+  }
   // A -ves plural belongs to a noun ending in -f or -fe, and those are named
   // one by one in `IRREGULAR_PLURAL`: turning every -ves back into -f makes a
   // "clof" out of "cloves" and an "olif" out of "olives".
-  if (/(?:ch|sh|s|x|z)es$/i.test(word)) return word.slice(0, -2);
+  if (/(?:ch|sh|s|x|z)es$/i.test(word)) {
+    return word.slice(0, -2);
+  }
   // "glass", "molasses": the -s belongs to the singular. Beyond the doubled -s
   // the ending settles nothing, "couscous" and "kiwis" both closing on -us, so
   // the names that carry their -s are named in `INVARIABLE_ITEM`.
-  if (/ss$/i.test(word)) return word;
-  if (/s$/i.test(word)) return word.slice(0, -1);
+  if (/ss$/i.test(word)) {
+    return word;
+  }
+  if (/s$/i.test(word)) {
+    return word.slice(0, -1);
+  }
   return word;
 }
 
@@ -669,24 +741,36 @@ interface Branch {
  */
 function splitBranch(text: string, parsed: ParsedIngredient): Branch | null {
   const itemStart = parsed.item ? text.indexOf(parsed.item) : text.length;
-  if (itemStart < 0) return null;
+  if (itemStart < 0) {
+    return null;
+  }
 
   BRANCH_SEPARATOR.lastIndex = 0;
   for (let match = BRANCH_SEPARATOR.exec(text); match; match = BRANCH_SEPARATOR.exec(text)) {
-    if (match.index < itemStart) continue;
+    if (match.index < itemStart) {
+      continue;
+    }
     const tail = text.slice(match.index + match[0].length);
-    if (parseIngredient(tail).amount === null) continue;
+    if (parseIngredient(tail).amount === null) {
+      continue;
+    }
     return { head: text.slice(0, match.index), separator: match[0], tail, close: "" };
   }
 
   BRACKETED_BRANCH.lastIndex = 0;
   for (let match = BRACKETED_BRANCH.exec(text); match; match = BRACKETED_BRANCH.exec(text)) {
-    if (match.index < itemStart) continue;
+    if (match.index < itemStart) {
+      continue;
+    }
     const opens = match.index + match[0].length;
     const closes = text.indexOf(")", opens);
-    if (closes < 0) continue;
+    if (closes < 0) {
+      continue;
+    }
     const tail = text.slice(opens, closes);
-    if (parseIngredient(tail).amount === null) continue;
+    if (parseIngredient(tail).amount === null) {
+      continue;
+    }
     return {
       head: text.slice(0, match.index),
       separator: match[0],
@@ -709,11 +793,15 @@ export function scaleIngredient(line: string, options: ScaleOptions): ScaledIngr
   const { factor } = options;
   // A factor of one changes nothing, and rewriting the line anyway would round
   // "178 ml" to "180 ml" and report a difference the caller never asked for.
-  if (factor === 1) return passthroughIngredient(line);
+  if (factor === 1) {
+    return passthroughIngredient(line);
+  }
 
   const text = line.trim();
   const branch = splitBranch(text, parseIngredient(text));
-  if (branch) return scaleBranchedLine(line, branch, options);
+  if (branch) {
+    return scaleBranchedLine(line, branch, options);
+  }
 
   return scaleSingleLine(line, options);
 }
@@ -729,7 +817,9 @@ export function scaleIngredient(line: string, options: ScaleOptions): ScaledIngr
  */
 function scaleBranchedLine(line: string, branch: Branch, options: ScaleOptions): ScaledIngredient {
   const head = scaleSingleLine(branch.head, options);
-  if (head.scaling === "unscaled") return { ...head, text: line.trim(), original: line };
+  if (head.scaling === "unscaled") {
+    return { ...head, text: line.trim(), original: line };
+  }
 
   const tail = scaleAlternative(branch.tail, options);
   const result: ScaledIngredient = {
@@ -762,10 +852,14 @@ function scaleBranchedLine(line: string, branch: Branch, options: ScaleOptions):
 function joinNotes(...notes: Array<string | undefined>): string {
   const seen: string[] = [];
   for (const note of notes) {
-    if (note === undefined) continue;
+    if (note === undefined) {
+      continue;
+    }
     for (const sentence of note.split(/(?<=\.)\s+/)) {
       const trimmed = sentence.trim();
-      if (trimmed !== "" && !seen.includes(trimmed)) seen.push(trimmed);
+      if (trimmed !== "" && !seen.includes(trimmed)) {
+        seen.push(trimmed);
+      }
     }
   }
   return seen.join(" ");
@@ -785,10 +879,14 @@ function scaleAlternative(
 ): { text: string; rewritten: boolean; note?: string } {
   const parsed = parseIngredient(tail);
   const published = tail.trim();
-  if (parsed.amount === null) return { text: published, rewritten: false };
+  if (parsed.amount === null) {
+    return { text: published, rewritten: false };
+  }
 
   const largest = (parsed.amountMax ?? parsed.amount) * options.factor;
-  if (largest < 1) return { text: published, rewritten: false };
+  if (largest < 1) {
+    return { text: published, rewritten: false };
+  }
 
   const scaled = scaleIngredient(tail, options);
   return scaled.note === undefined
@@ -814,116 +912,39 @@ const INDICATION_NOTE =
   "This line asks for no fixed amount and gives an indication in brackets of how much that " +
   "usually comes to.";
 
-/**
- * Scale a line whose only quantity is the indication it states in brackets.
- *
- * The head of such a line tells the cook how to decide and never how much, so
- * it is left word for word; the figure beside it is a quantity like any other
- * and grows with the recipe. Left alone it would put the water of a doubled
- * dough at half what the flour needs.
- */
-function scaleBracketedIndication(
-  parsed: ParsedIngredient,
-  indication: BracketedIndication,
-  factor: number,
-): ScaledIngredient {
-  const text = parsed.readable;
-  const scaled = renderMeasure(indication.measure, factor);
-  const bound = scaled.bounds[0];
-
-  return {
-    text: `${text.slice(0, indication.start)}(${indication.lead}${scaled.text})${text.slice(indication.end)}`,
-    original: parsed.original,
-    scaling: scaled.bounds.every((entry) => landedExactly(entry.exact, entry.amount))
-      ? "scaled"
-      : "rounded",
-    amount: bound.amount,
-    amountMax: scaled.bounds[1]?.amount ?? null,
-    unit: indication.measure.unit?.canonical ?? null,
-    note: `${INDICATION_NOTE} That indication was scaled with the recipe; the wording in front of it is what the page asks for.`,
-  };
+/** What the answer says about a line beyond the figure it came to. */
+interface LineOutcome {
+  parsed: ParsedIngredient;
+  bounds: readonly ScaledBound[];
+  unit: UnitInfo | null;
+  low: ScaledBound;
+  clamped: ScaledBound | null;
+  movedPrimary: boolean;
+  movedAlternate: boolean;
+  restated: boolean;
+  collapsed: boolean;
 }
 
-function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient {
-  const { factor } = options;
-  const parsed = parseIngredient(line);
-
-  if (parsed.amount === null && parsed.heldBack === null) {
-    const indication = readBracketedIndication(parsed.readable);
-    if (indication) return scaleBracketedIndication(parsed, indication, factor);
-  }
-
-  if (parsed.amount === null || parsed.heldBack) {
-    return {
-      text: parsed.original,
-      original: parsed.original,
-      scaling: "unscaled",
-      amount: null,
-      amountMax: null,
-      unit: null,
-      note: parsed.heldBack
-        ? HELD_BACK_NOTE[parsed.heldBack]
-        : "No quantity given; adjust to taste.",
-    };
-  }
-
-  const divisibility = divisibilityOf(parsed.unit, parsed.item);
-  const primary = scaleMeasure(parsed.amount, parsed.amountMax, parsed.unit, factor, divisibility);
-  const alternates = parsed.alternates.map((measure) => renderMeasure(measure, factor));
-
-  const primaryBounds = primary.bounds;
-  const alternateBounds = alternates.flatMap((entry) => entry.bounds);
-  const movedPrimary = primaryBounds.some((b) => !landedExactly(b.exact, b.amount));
-  const movedAlternate = alternateBounds.some((b) => !landedExactly(b.exact, b.amount));
-  const clamped = [...primaryBounds, ...alternateBounds].find((bound) => bound.clamped) ?? null;
-  // Two figures beside each other agree only as closely as the page wrote
-  // them, and multiplying both keeps that gap rather than closing it.
-  const restated = parsed.alternateStyle === "slash";
-
-  const low = primaryBounds[0];
-  const high = primaryBounds[1] ?? null;
-  const unit = primary.unit;
-  const shown = high?.amount ?? low.amount;
-  const asText = (value: number) => formatAmount(value, { fractions: unit?.kind !== "measured" });
-
-  // A range whose two ends land on the same amount stopped being a range. "1 to
-  // 1 clove" is not something a cook reads, so the line states the one amount
-  // both ends came to.
-  const collapsed = high !== null && high.amount === low.amount;
-  const amountText = renderRange(
-    asText(low.amount),
-    high === null || collapsed ? null : asText(high.amount),
-    parsed.rangeSeparator,
-  );
-  // "ea" announces that the figure counts pieces, and names no measure of them,
-  // so the line reads as the count of the thing itself and the marker has
-  // nothing to say in it.
-  const named = unit && !countsBarePieces(unit) ? unit : null;
-  // The size word the page put in front of its measure goes back in front of
-  // it: the page asked for a small handful, and a handful is not the same ask.
-  const adjective = named && parsed.measureAdjective ? ` ${parsed.measureAdjective}` : "";
-  const unitLabel = named ? `${adjective} ${formatUnit(named, shown)}` : "";
-  const alternateTexts = alternates.map((entry) => entry.text);
-  // Equivalents go back the way the line offered them: inside brackets, or
-  // after a slash beside the amount they restate.
-  const altLabel =
-    alternates.length === 0
-      ? ""
-      : parsed.alternateStyle === "slash"
-        ? ` / ${alternateTexts.join(" / ")}`
-        : ` (${alternateTexts.join(" / ")})`;
-  // A counted item agrees with its number: "1 egg yolk", "3 loaves".
-  const item = named ? parsed.item : agreeWithAmount(parsed.item, shown);
-  const itemLabel = item ? ` ${item}` : "";
-
-  const result: ScaledIngredient = {
-    text: `${parsed.approximation ?? ""}${amountText}${unitLabel}${altLabel}${itemLabel}`.trim(),
-    original: parsed.original,
-    scaling: movedPrimary || movedAlternate || restated ? "rounded" : "scaled",
-    amount: low.amount,
-    amountMax: collapsed ? null : (high?.amount ?? null),
-    unit: named?.canonical ?? null,
-  };
+/**
+ * Everything the answer owes a caller about one scaled line, in one string.
+ *
+ * The reasons stack: a line can be clamped, carry a second quantity, collapse
+ * its range and state an approximation, and each has to be said without
+ * cancelling the others.
+ */
+function noteForScaledLine(outcome: LineOutcome): string | undefined {
+  const {
+    parsed,
+    bounds: primaryBounds,
+    unit,
+    low,
+    clamped,
+    movedPrimary,
+    movedAlternate,
+    restated,
+    collapsed,
+  } = outcome;
+  let note: string | undefined;
 
   /**
    * The exact product, written for a note.
@@ -1008,10 +1029,12 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
     );
   }
 
-  if (sentences.length > 0) result.note = sentences.join(" ");
+  if (sentences.length > 0) {
+    note = sentences.join(" ");
+  }
 
   if (parsed.unit && parsed.unit.kind === "approximate") {
-    result.note = withApproximateNote(parsed.unit, result.note);
+    note = withApproximateNote(parsed.unit, note);
   }
 
   // A line that wrote its amount as a word says which word it was, so a caller
@@ -1022,7 +1045,163 @@ function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient 
     // gave.
     const stood = (parsed.amount ?? 0) / (parsed.countMultiplier ?? 1);
     const read = `"${parsed.articleWord}" read as ${formatAmount(stood)}.`;
-    result.note = result.note ? `${read} ${result.note}` : read;
+    note = note ? `${read} ${note}` : read;
+  }
+
+  return note;
+}
+
+/**
+ * The line as it reads once scaled: the amount, its measure, the equivalents
+ * beside it, and the item they belong to.
+ *
+ * The size word the page put in front of its measure goes back in front of it —
+ * the page asked for a small handful, and a handful is not the same ask — and
+ * the equivalents go back the way the line offered them, in brackets or after a
+ * slash beside the amount they restate.
+ */
+function renderScaledLine(
+  parsed: ParsedIngredient,
+  alternates: ReadonlyArray<{ text: string }>,
+  unit: UnitInfo | null,
+  shown: number,
+  amountText: string,
+): { named: UnitInfo | null; text: string } {
+  const named = unit && !countsBarePieces(unit) ? unit : null;
+  const adjective = named && parsed.measureAdjective ? ` ${parsed.measureAdjective}` : "";
+  const unitLabel = named ? `${adjective} ${formatUnit(named, shown)}` : "";
+
+  const alternateTexts = alternates.map((entry) => entry.text);
+  const altLabel = alternateLabel(alternateTexts, parsed.alternateStyle === "slash");
+
+  // A counted item agrees with its number: "1 egg yolk", "3 loaves".
+  const item = named ? parsed.item : agreeWithAmount(parsed.item, shown);
+  const itemLabel = item ? ` ${item}` : "";
+
+  return {
+    named,
+    text: `${parsed.approximation ?? ""}${amountText}${unitLabel}${altLabel}${itemLabel}`.trim(),
+  };
+}
+
+/** The equivalents beside a measure, written the way the line wrote them. */
+function alternateLabel(texts: readonly string[], restated: boolean): string {
+  if (texts.length === 0) {
+    return "";
+  }
+  return restated ? ` / ${texts.join(" / ")}` : ` (${texts.join(" / ")})`;
+}
+
+/**
+ * Scale a line whose only quantity is the indication it states in brackets.
+ *
+ * The head of such a line tells the cook how to decide and never how much, so
+ * it is left word for word; the figure beside it is a quantity like any other
+ * and grows with the recipe. Left alone it would put the water of a doubled
+ * dough at half what the flour needs.
+ */
+function scaleBracketedIndication(
+  parsed: ParsedIngredient,
+  indication: BracketedIndication,
+  factor: number,
+): ScaledIngredient {
+  const text = parsed.readable;
+  const scaled = renderMeasure(indication.measure, factor);
+  const bound = scaled.bounds[0];
+
+  return {
+    text: `${text.slice(0, indication.start)}(${indication.lead}${scaled.text})${text.slice(indication.end)}`,
+    original: parsed.original,
+    scaling: scaled.bounds.every((entry) => landedExactly(entry.exact, entry.amount))
+      ? "scaled"
+      : "rounded",
+    amount: bound.amount,
+    amountMax: scaled.bounds[1]?.amount ?? null,
+    unit: indication.measure.unit?.canonical ?? null,
+    note: `${INDICATION_NOTE} That indication was scaled with the recipe; the wording in front of it is what the page asks for.`,
+  };
+}
+
+function scaleSingleLine(line: string, options: ScaleOptions): ScaledIngredient {
+  const { factor } = options;
+  const parsed = parseIngredient(line);
+
+  if (parsed.amount === null && parsed.heldBack === null) {
+    const indication = readBracketedIndication(parsed.readable);
+    if (indication) {
+      return scaleBracketedIndication(parsed, indication, factor);
+    }
+  }
+
+  if (parsed.amount === null || parsed.heldBack) {
+    return {
+      text: parsed.original,
+      original: parsed.original,
+      scaling: "unscaled",
+      amount: null,
+      amountMax: null,
+      unit: null,
+      note: parsed.heldBack
+        ? HELD_BACK_NOTE[parsed.heldBack]
+        : "No quantity given; adjust to taste.",
+    };
+  }
+
+  const divisibility = divisibilityOf(parsed.unit, parsed.item);
+  const primary = scaleMeasure(parsed.amount, parsed.amountMax, parsed.unit, factor, divisibility);
+  const alternates = parsed.alternates.map((measure) => renderMeasure(measure, factor));
+
+  const primaryBounds = primary.bounds;
+  const alternateBounds = alternates.flatMap((entry) => entry.bounds);
+  const movedPrimary = primaryBounds.some((b) => !landedExactly(b.exact, b.amount));
+  const movedAlternate = alternateBounds.some((b) => !landedExactly(b.exact, b.amount));
+  const clamped = [...primaryBounds, ...alternateBounds].find((bound) => bound.clamped) ?? null;
+  // Two figures beside each other agree only as closely as the page wrote
+  // them, and multiplying both keeps that gap rather than closing it.
+  const restated = parsed.alternateStyle === "slash";
+
+  const low = primaryBounds[0];
+  const high = primaryBounds[1] ?? null;
+  const unit = primary.unit;
+  const shown = high?.amount ?? low.amount;
+  const asText = (value: number) => formatAmount(value, { fractions: unit?.kind !== "measured" });
+
+  // A range whose two ends land on the same amount stopped being a range. "1 to
+  // 1 clove" is not something a cook reads, so the line states the one amount
+  // both ends came to.
+  const collapsed = high !== null && high.amount === low.amount;
+  const amountText = renderRange(
+    asText(low.amount),
+    high === null || collapsed ? null : asText(high.amount),
+    parsed.rangeSeparator,
+  );
+  // "ea" announces that the figure counts pieces, and names no measure of them,
+  // so the line reads as the count of the thing itself and the marker has
+  // nothing to say in it.
+  const { named, text } = renderScaledLine(parsed, alternates, unit, shown, amountText);
+
+  const result: ScaledIngredient = {
+    text,
+    original: parsed.original,
+    scaling: movedPrimary || movedAlternate || restated ? "rounded" : "scaled",
+    amount: low.amount,
+    amountMax: collapsed ? null : (high?.amount ?? null),
+    unit: named?.canonical ?? null,
+  };
+
+  const note = noteForScaledLine({
+    parsed,
+    bounds: primaryBounds,
+    unit,
+    low,
+    clamped,
+    movedPrimary,
+    movedAlternate,
+    restated,
+    collapsed,
+  });
+  if (note !== undefined) {
+    result.note = note;
   }
 
   return result;
@@ -1076,7 +1255,9 @@ function renderMeasure(
 
 /** Keep a range in the shape the recipe wrote it: "3–4" or "2 to 3". */
 function renderRange(low: string, high: string | null, separator: string | null): string {
-  if (high === null || separator === null) return low;
+  if (high === null || separator === null) {
+    return low;
+  }
   return /^[-–—]$/.test(separator) ? `${low}${separator}${high}` : `${low} ${separator} ${high}`;
 }
 
@@ -1103,8 +1284,9 @@ export function passthroughIngredient(line: string): ScaledIngredient {
     amountMax: held ? null : parsed.amountMax,
     unit: held ? null : (parsed.unit?.canonical ?? null),
   };
-  if (parsed.heldBack) result.note = HELD_BACK_NOTE[parsed.heldBack];
-  else if (parsed.amount === null) {
+  if (parsed.heldBack) {
+    result.note = HELD_BACK_NOTE[parsed.heldBack];
+  } else if (parsed.amount === null) {
     // The bracket speaks for the whole line only where the line offers no
     // choice: on "6 eggs or ½ pint (300 ml) of cream" it belongs to the second
     // branch, and scaling reads that line branch by branch.

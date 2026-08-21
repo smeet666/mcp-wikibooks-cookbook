@@ -51,7 +51,9 @@ async function run(
   await vi.advanceTimersByTimeAsync(AMPLE_MS);
   await held;
   const result = await pending;
-  if (result.isError) return { structured: {}, text: textOf(result), isError: true, urls };
+  if (result.isError) {
+    return { structured: {}, text: textOf(result), isError: true, urls };
+  }
   return { structured: structuredOf(result), text: textOf(result), isError: false, urls };
 }
 
@@ -80,7 +82,7 @@ describe("the envelope search_recipes returns", () => {
 
   it("gives every row an id a caller can take back, and a link", async () => {
     const { structured } = await run("search", { query: "salt" }, "search-recipes");
-    for (const row of structured.results as Array<Record<string, unknown>>) {
+    for (const row of structured.results as Record<string, unknown>[]) {
       expect(typeof row.id).toBe("string");
       expect((row.id as string).length).toBeGreaterThan(0);
       expect(row.url).toMatch(/^https:\/\//);
@@ -143,7 +145,9 @@ describe("what was dropped is said", () => {
     const { structured, text } = await run("search", { query: "salt" }, "search-recipes");
     const rendered = (structured.notes as string[]).filter((note) => text.includes(note));
     expect(rendered.length).toBeGreaterThan(0);
-    for (const note of rendered) expect(text).toContain(`Note: ${note}`);
+    for (const note of rendered) {
+      expect(text).toContain(`Note: ${note}`);
+    }
     expect(text.trimEnd().split("\n").pop()).toMatch(/^Source: Wikibooks Cookbook/);
   });
 });
@@ -238,7 +242,7 @@ describe("the two searches read different indexes", () => {
 
   it("names the project identifier and a contact address on every request", async () => {
     const { fetchImpl } = gatewayFetch({ search: readFixture("search-recipes") });
-    const calls: Array<Record<string, unknown>> = [];
+    const calls: Record<string, unknown>[] = [];
     const spy = (async (input: unknown, init: RequestInit) => {
       calls.push((init?.headers ?? {}) as Record<string, unknown>);
       return fetchImpl(input as string, init);

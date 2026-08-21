@@ -41,7 +41,7 @@ describe("names that read the same in both numbers", () => {
 });
 
 describe("names whose plural is irregular", () => {
-  const cases: Array<[string, string]> = [
+  const cases: [string, string][] = [
     ["potato", "potatoes"],
     ["tomato", "tomatoes"],
     ["mango", "mangoes"],

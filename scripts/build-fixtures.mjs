@@ -40,7 +40,9 @@ const row = (key, title, extra = {}) => ({
 
 function hash(text) {
   let value = 0;
-  for (const character of text) value = (value * 31 + character.codePointAt(0)) | 0;
+  for (const character of text) {
+    value = (value * 31 + character.codePointAt(0)) | 0;
+  }
   return value;
 }
 

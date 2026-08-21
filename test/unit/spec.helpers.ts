@@ -74,10 +74,16 @@ const VOLUME: Record<string, number> = {
 export type Dimension = "mass" | "volume" | "count";
 
 export function dimensionOf(unit: string | null): Dimension {
-  if (unit === null) return "count";
+  if (unit === null) {
+    return "count";
+  }
   const key = unit.trim().toLowerCase();
-  if (key in MASS) return "mass";
-  if (key in VOLUME) return "volume";
+  if (key in MASS) {
+    return "mass";
+  }
+  if (key in VOLUME) {
+    return "volume";
+  }
   return "count";
 }
 
@@ -86,16 +92,24 @@ export function dimensionOf(unit: string | null): Dimension {
  * equal and a demotion to a smaller unit is not mistaken for a change of value.
  */
 export function canonical(amount: number, unit: string | null): number {
-  if (unit === null) return amount;
+  if (unit === null) {
+    return amount;
+  }
   const key = unit.trim().toLowerCase();
-  if (key in MASS) return amount * (MASS[key] as number);
-  if (key in VOLUME) return amount * (VOLUME[key] as number);
+  if (key in MASS) {
+    return amount * (MASS[key] as number);
+  }
+  if (key in VOLUME) {
+    return amount * (VOLUME[key] as number);
+  }
   return amount;
 }
 
 /** True when the unit is one this file can convert, so a check is meaningful. */
 export function known(unit: string | null): boolean {
-  if (unit === null) return true;
+  if (unit === null) {
+    return true;
+  }
   const key = unit.trim().toLowerCase();
   return key in MASS || key in VOLUME;
 }

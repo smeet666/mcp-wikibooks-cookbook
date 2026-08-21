@@ -20,7 +20,7 @@ import {
 } from "../../src/tools/shared.js";
 import { fixture, jsonResponse, routedFetch, silentLogger } from "./helpers.js";
 
-function client(routes: Array<[string, unknown]>) {
+function client(routes: [string, unknown][]) {
   const { fetchImpl } = routedFetch(routes);
   return new CookbookClient({
     config: { cacheTtlMs: 0, minIntervalMs: 500, maxRetries: 0 },

@@ -109,17 +109,23 @@ describe("factor 1 changes nothing and claims nothing", () => {
 
   it("returns each line as published", () => {
     const scaled = scale(lines, { factor: 1 }).lines;
-    for (const line of scaled) expect(line.text).toBe(line.original);
+    for (const line of scaled) {
+      expect(line.text).toBe(line.original);
+    }
   });
 
   it("never reports a line as rounded when nothing moved", () => {
     const scaled = scale(lines, { factor: 1 }).lines;
-    for (const line of scaled) expect(line.scaling).not.toBe("rounded");
+    for (const line of scaled) {
+      expect(line.scaling).not.toBe("rounded");
+    }
   });
 
   it("treats from_servings equal to to_servings the same way", () => {
     const scaled = scale(lines, { from_servings: 6, to_servings: 6 }).lines;
-    for (const line of scaled) expect(line.text).toBe(line.original);
+    for (const line of scaled) {
+      expect(line.text).toBe(line.original);
+    }
   });
 });
 
@@ -258,7 +264,7 @@ describe("published ranges survive scaling as ranges", () => {
 });
 
 describe("unicode fractions are quantities, not decoration", () => {
-  const cases: Array<[string, number, number, string]> = [
+  const cases: [string, number, number, string][] = [
     ["½ tablespoon freshly-ground pepper", 2, 1, "tablespoon"],
     ["¾ cup milk", 2, 1.5, "cup"],
     ["⅓ cup water", 3, 1, "cup"],
@@ -367,7 +373,9 @@ describe("the bounds of the factor", () => {
     expect(structured.factor as number).toBeCloseTo(33.3, 1);
     for (const line of lines) {
       expect(line.text).not.toMatch(/NaN|Infinity/);
-      if (line.amount !== null) expect(line.amount).toBeGreaterThan(0);
+      if (line.amount !== null) {
+        expect(line.amount).toBeGreaterThan(0);
+      }
     }
     const noodles = lines[0] as ScaledLine;
     expect(canonical(noodles.amount as number, noodles.unit)).toBeCloseTo(450 * (200 / 6), 3);
@@ -459,7 +467,9 @@ describe("the arguments the contract names", () => {
   it("puts its notes in the text block a thin client renders", () => {
     const { structured, text } = scale(["5 egg yolks", "Salt"], { factor: 4 / 6 });
     for (const note of structured.notes as string[]) {
-      if (text.includes(note)) expect(text).toContain(`Note: ${note}`);
+      if (text.includes(note)) {
+        expect(text).toContain(`Note: ${note}`);
+      }
     }
     expect(text).toMatch(/Source: Wikibooks Cookbook/);
   });

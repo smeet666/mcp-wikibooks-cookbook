@@ -31,13 +31,19 @@ export function findTemplates(source: string, name: string): Template[] {
   const found: Template[] = [];
 
   for (let i = 0; i < source.length - 1; i += 1) {
-    if (source[i] !== "{" || source[i + 1] !== "{") continue;
+    if (source[i] !== "{" || source[i + 1] !== "{") {
+      continue;
+    }
     const end = matchingClose(source, i);
-    if (end === null) continue;
+    if (end === null) {
+      continue;
+    }
 
     const body = source.slice(i + 2, end);
     const parsed = parseTemplateBody(body);
-    if (parsed.name === wanted) found.push(parsed);
+    if (parsed.name === wanted) {
+      found.push(parsed);
+    }
     // Skip past this call rather than descending into it: a citation inside an
     // infobox is not a top-level use of the template being looked for.
     i = end + 1;
@@ -68,7 +74,9 @@ function matchingClose(source: string, start: number): number | null {
     }
     if (source[i] === "}" && source[i + 1] === "}") {
       depth -= 1;
-      if (depth === 0) return i;
+      if (depth === 0) {
+        return i;
+      }
       i += 1;
     }
   }
@@ -137,10 +145,14 @@ function parseTemplateBody(body: string): Template {
 /** Read a template argument by name, falling back to its position. */
 export function templateArg(template: Template, name: string, position?: number): string | null {
   const byName = template.named[name.toLowerCase().replace(/[\s_]+/g, "")];
-  if (byName !== undefined && byName.trim() !== "") return byName.trim();
+  if (byName !== undefined && byName.trim() !== "") {
+    return byName.trim();
+  }
   if (position !== undefined) {
     const byPosition = template.positional[position];
-    if (byPosition !== undefined && byPosition.trim() !== "") return byPosition.trim();
+    if (byPosition !== undefined && byPosition.trim() !== "") {
+      return byPosition.trim();
+    }
   }
   return null;
 }
@@ -180,7 +192,9 @@ export function flattenWikitext(source: string): string {
         typeof label === "string" && label.trim() !== "" ? label : stripNamespace(target);
       return shown;
     });
-    if (next === text) break;
+    if (next === text) {
+      break;
+    }
     text = next;
   }
 
@@ -255,7 +269,9 @@ const NAMED_ENTITIES: Record<string, string> = {
 /** Turn HTML entities back into the characters the wiki renders them as. */
 export function decodeEntities(text: string): string {
   return text
-    .replace(/&#x([0-9a-f]+);/gi, (whole, hex: string) => codePoint(parseInt(hex, 16), whole))
+    .replace(/&#x([0-9a-f]+);/gi, (whole, hex: string) =>
+      codePoint(Number.parseInt(hex, 16), whole),
+    )
     .replace(/&#(\d+);/g, (whole, digits: string) => codePoint(Number(digits), whole))
     .replace(
       /&([a-z][a-z0-9]*);/gi,
@@ -265,7 +281,9 @@ export function decodeEntities(text: string): string {
 
 /** A code point a page named, or the entity as published when it names none. */
 function codePoint(value: number, published: string): string {
-  if (!Number.isInteger(value) || value < 32 || value > 0x10ffff) return published;
+  if (!Number.isInteger(value) || value < 32 || value > 0x10ffff) {
+    return published;
+  }
   try {
     return String.fromCodePoint(value);
   } catch {
@@ -300,7 +318,9 @@ export function stripTemplates(source: string): string {
   for (let i = 0; i < source.length; i += 1) {
     if (source.slice(i, i + 2) === "{{") {
       const end = matchingClose(source, i);
-      if (end === null) break;
+      if (end === null) {
+        break;
+      }
       out += renderTemplate(parseTemplateBody(source.slice(i + 2, end)));
       i = end + 1;
       continue;
@@ -321,13 +341,21 @@ export function stripTemplates(source: string): string {
  * here in the system the source chose.
  */
 function renderTemplate(template: Template): string {
-  if (template.name === "convert" || template.name === "cvt") return renderConversion(template);
-  if (template.name === "frac" || template.name === "sfrac") return renderFraction(template);
-  if (template.name === "cb") return renderCookbookLink(template);
+  if (template.name === "convert" || template.name === "cvt") {
+    return renderConversion(template);
+  }
+  if (template.name === "frac" || template.name === "sfrac") {
+    return renderFraction(template);
+  }
+  if (template.name === "cb") {
+    return renderCookbookLink(template);
+  }
   if (template.name === "w" || template.name === "wp" || template.name === "wikt") {
     return renderInterwikiLink(template);
   }
-  if (template.name === "lang") return renderForeignPhrase(template);
+  if (template.name === "lang") {
+    return renderForeignPhrase(template);
+  }
   return "";
 }
 
@@ -385,7 +413,9 @@ const RANGE_SEPARATORS: Record<string, string> = {
  */
 function renderConversion(template: Template): string {
   const [first, second, third, fourth] = template.positional;
-  if (first === undefined || !isNumeric(first)) return "";
+  if (first === undefined || !isNumeric(first)) {
+    return "";
+  }
 
   const separator = second === undefined ? undefined : RANGE_SEPARATORS[second.toLowerCase()];
   if (separator !== undefined && third !== undefined && isNumeric(third)) {
@@ -403,7 +433,9 @@ function renderConversion(template: Template): string {
 const UNIT_LABELS: Record<string, string> = { C: "°C", F: "°F", K: "K", R: "°R" };
 
 function withUnit(value: string, unit: string | undefined): string {
-  if (unit === undefined || unit.trim() === "") return value;
+  if (unit === undefined || unit.trim() === "") {
+    return value;
+  }
   return `${value} ${UNIT_LABELS[unit.trim()] ?? unit.trim()}`;
 }
 
@@ -415,9 +447,15 @@ function withUnit(value: string, unit: string | undefined): string {
  */
 function renderFraction(template: Template): string {
   const parts = template.positional.filter((part) => part.trim() !== "");
-  if (parts.length === 0 || parts.length > 3 || !parts.every(isNumeric)) return "";
-  if (parts.length === 1) return `1/${parts[0]}`;
-  if (parts.length === 2) return `${parts[0]}/${parts[1]}`;
+  if (parts.length === 0 || parts.length > 3 || !parts.every(isNumeric)) {
+    return "";
+  }
+  if (parts.length === 1) {
+    return `1/${parts[0]}`;
+  }
+  if (parts.length === 2) {
+    return `${parts[0]}/${parts[1]}`;
+  }
   return `${parts[0]} ${parts[1]}/${parts[2]}`;
 }
 
@@ -488,6 +526,39 @@ export interface NestedHeadingRules {
   opensAlternative?: (section: Section) => boolean;
 }
 
+/** One heading's effect on the two scopes a chunk can sit in. */
+interface Scopes {
+  part: { level: number; title: string } | null;
+  alternative: { level: number; title: string } | null;
+}
+
+/**
+ * The scopes a heading leaves open behind it.
+ *
+ * A heading closes whichever scope it is not nested inside, and then opens one
+ * of its own: an alternative when the rules say the title names one, a part
+ * otherwise. An untitled section changes neither.
+ */
+function scopesAfter(
+  section: Section,
+  open: Scopes,
+  opensAlternative: (section: Section) => boolean,
+): Scopes {
+  const part = open.part !== null && section.level <= open.part.level ? null : open.part;
+  const alternative =
+    open.alternative !== null && section.level <= open.alternative.level ? null : open.alternative;
+
+  const title = section.title === "" ? null : section.title;
+  if (title === null) {
+    return { part, alternative };
+  }
+
+  if (opensAlternative(section)) {
+    return { part, alternative: { level: section.level, title } };
+  }
+  return { part: { level: section.level, title }, alternative };
+}
+
 /**
  * The runs of text a heading covers, its nested sections included.
  *
@@ -510,7 +581,9 @@ export function sectionChunks(
   rules: NestedHeadingRules = {},
 ): SectionChunk[] {
   const start = sections[index];
-  if (start === undefined) return [];
+  if (start === undefined) {
+    return [];
+  }
   const standsAlone = rules.standsAlone ?? (() => false);
   const opensAlternative = rules.opensAlternative ?? (() => false);
 
@@ -521,24 +594,19 @@ export function sectionChunks(
 
   for (let at = index + 1; at < sections.length; at += 1) {
     const section = sections[at];
-    if (section === undefined || section.level <= start.level) break;
-    if (skipBelow !== null && section.level > skipBelow) continue;
+    if (section === undefined || section.level <= start.level) {
+      break;
+    }
+    if (skipBelow !== null && section.level > skipBelow) {
+      continue;
+    }
     skipBelow = null;
     if (standsAlone(section)) {
       skipBelow = section.level;
       continue;
     }
 
-    // A heading closes whichever scope it is not nested inside.
-    if (part !== null && section.level <= part.level) part = null;
-    if (alternative !== null && section.level <= alternative.level) alternative = null;
-
-    const title = section.title === "" ? null : section.title;
-    if (title !== null && opensAlternative(section)) {
-      alternative = { level: section.level, title };
-    } else if (title !== null) {
-      part = { level: section.level, title };
-    }
+    ({ part, alternative } = scopesAfter(section, { part, alternative }, opensAlternative));
 
     chunks.push({
       subheading: part?.title ?? null,
@@ -590,13 +658,22 @@ export function readList(body: string, markers: string): ListRead {
   for (const line of body.split("\n")) {
     const trimmed = line.trimEnd();
     const first = trimmed[0];
-    if (!first || !markers.includes(first)) continue;
-    if (trimmed[1] && markers.includes(trimmed[1])) continue;
+    if (!first || !markers.includes(first)) {
+      continue;
+    }
+    if (trimmed[1] && markers.includes(trimmed[1])) {
+      continue;
+    }
     const written = trimmed.slice(1);
-    if (written.trim() === "") continue;
+    if (written.trim() === "") {
+      continue;
+    }
     const text = flattenWikitext(written).trim();
-    if (text === "") emptied += 1;
-    else items.push(text);
+    if (text === "") {
+      emptied += 1;
+    } else {
+      items.push(text);
+    }
   }
   return { items, emptied };
 }
@@ -631,13 +708,19 @@ export function parseTables(source: string): WikiTable[] {
     const trimmed = line.replace(/^[:*#;\s]+/, "");
     if (trimmed.startsWith("{|")) {
       depth += 1;
-      if (depth === 1) block = [];
+      if (depth === 1) {
+        block = [];
+      }
       continue;
     }
-    if (depth === 0) continue;
+    if (depth === 0) {
+      continue;
+    }
     if (trimmed.startsWith("|}")) {
       depth -= 1;
-      if (depth === 0) tables.push(readTableBlock(block));
+      if (depth === 0) {
+        tables.push(readTableBlock(block));
+      }
       continue;
     }
     block.push(line);
@@ -663,18 +746,26 @@ function readTableBlock(lines: string[]): WikiTable {
   let cell: string[] | null = null;
 
   const closeCell = () => {
-    if (cell === null) return;
+    if (cell === null) {
+      return;
+    }
     row.push(cleanCell(cell.join("\n")));
     cell = null;
   };
   const closeRow = () => {
     closeCell();
-    if (row.length === 0) return;
+    if (row.length === 0) {
+      return;
+    }
     // A heading row names the columns rather than filling them, and a table
     // repeating its headings partway down is naming them again.
     if (rowIsHeading) {
-      if (headers.length === 0) headers.push(...row);
-    } else rows.push(row);
+      if (headers.length === 0) {
+        headers.push(...row);
+      }
+    } else {
+      rows.push(row);
+    }
     row = [];
     rowIsHeading = false;
   };
@@ -698,13 +789,17 @@ function readTableBlock(lines: string[]): WikiTable {
       parts.slice(0, -1).forEach((part) => {
         row.push(cleanCell(part));
       });
-      cell = [parts[parts.length - 1] ?? ""];
+      cell = [parts.at(-1) ?? ""];
       // A row holding one heading cell holds a heading row: the marker is per
       // cell, and a row mixing the two is a body row with a label in it.
-      if (heading && row.length === parts.length - 1) rowIsHeading = true;
+      if (heading && row.length === parts.length - 1) {
+        rowIsHeading = true;
+      }
       continue;
     }
-    if (cell !== null) cell.push(line);
+    if (cell !== null) {
+      cell.push(line);
+    }
   }
 
   closeRow();
@@ -731,7 +826,9 @@ export function readCategories(source: string): string[] {
   const seen = new Set<string>();
   for (const match of source.matchAll(/\[\[Category:([^\]|]+)(?:\|[^\]]*)?\]\]/gi)) {
     const name = (match[1] ?? "").trim();
-    if (name !== "") seen.add(name);
+    if (name !== "") {
+      seen.add(name);
+    }
   }
   return [...seen];
 }

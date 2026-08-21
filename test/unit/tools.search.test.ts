@@ -4,7 +4,7 @@ import { buildBrowseQuery, runListRecipes } from "../../src/tools/listRecipes.js
 import { runSearchRecipes } from "../../src/tools/searchRecipes.js";
 import { fixture, routedFetch, silentLogger } from "./helpers.js";
 
-function client(routes: Array<[string, unknown]>) {
+function client(routes: [string, unknown][]) {
   const { fetchImpl, calls } = routedFetch(routes);
   return {
     calls,
@@ -16,7 +16,7 @@ function client(routes: Array<[string, unknown]>) {
   };
 }
 
-const SEARCH = [["/search/page", fixture("search-recipes")]] as Array<[string, unknown]>;
+const SEARCH = [["/search/page", fixture("search-recipes")]] as [string, unknown][];
 
 describe("search_recipes", () => {
   it("returns the Cookbook rows with the id get_recipe takes", async () => {

@@ -55,7 +55,7 @@ export const rateLimited = (message: string, details?: ErrorDetails) =>
 
 export const parseFailure = (message: string, details?: ErrorDetails) =>
   new CookbookError("parse_failure", message, {
-    hint: `The gateway may have changed how it answers. Please report this at ${"https://github.com/smeet666/mcp-wikibooks-cookbook/issues"} with the arguments you used.`,
+    hint: "The gateway may have changed how it answers. Please report this at https://github.com/smeet666/mcp-wikibooks-cookbook/issues with the arguments you used.",
     ...details,
   });
 

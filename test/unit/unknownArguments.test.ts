@@ -21,7 +21,7 @@ const EPOCH = new Date("2026-01-01T00:00:00.000Z");
 const AMPLE_MS = 300_000;
 
 /** One valid call per tool, so a refusal is never mistaken for a broken tool. */
-const CALLS: Array<[string, Record<string, unknown>]> = [
+const CALLS: [string, Record<string, unknown>][] = [
   ["search_recipes", { query: "noodles" }],
   ["list_recipes", { cuisine: "italian" }],
   ["get_recipe", { id: "Cookbook:Salt_Flat_Noodles" }],
@@ -63,7 +63,9 @@ beforeEach(() => {
 });
 
 afterEach(async () => {
-  for (const harness of open) await harness.close();
+  for (const harness of open) {
+    await harness.close();
+  }
   open.clear();
   vi.useRealTimers();
 });
