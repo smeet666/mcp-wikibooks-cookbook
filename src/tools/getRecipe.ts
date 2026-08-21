@@ -481,7 +481,9 @@ function renderRecipe(
   }
   if (structured.steps.length > 0) {
     lines.push("", "Procedure:");
-    structured.steps.forEach((step, index) => lines.push(`  ${index + 1}. ${step}`));
+    structured.steps.forEach((step, index) => {
+      lines.push(`  ${index + 1}. ${step}`);
+    });
   }
   if (structured.nutrition) {
     const facts = [

@@ -6,7 +6,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { CookbookError } from "../../src/errors.js";
+import type { CookbookError } from "../../src/errors.js";
 import { fetchJson, fetchText, parseRetryAfter } from "../../src/wikibooks/http.js";
 import { RateLimiter } from "../../src/wikibooks/rateLimiter.js";
 import {
