@@ -132,9 +132,11 @@ export function parseLeadingQuantity(text: string): ParsedQuantity | null {
   // "3 ¼" and "3¼" before the bare "3", so the longest reading wins.
   const mixedGlyph = new RegExp(`^(\\d+)\\s*([${VULGAR_CLASS}])`).exec(trimmed);
   if (mixedGlyph) {
-    const whole = Number(mixedGlyph[1]);
-    const fraction = VULGAR_FRACTIONS[mixedGlyph[2]!]!;
-    return { amount: whole + fraction, length: offset + mixedGlyph[0].length };
+    const [whole = "", glyph = ""] = mixedGlyph.slice(1);
+    const fraction = VULGAR_FRACTIONS[glyph];
+    if (fraction !== undefined) {
+      return { amount: Number(whole) + fraction, length: offset + mixedGlyph[0].length };
+    }
   }
 
   const mixed = /^(\d+)\s+(\d+)\s*\/\s*(\d+)/.exec(trimmed);
@@ -157,9 +159,10 @@ export function parseLeadingQuantity(text: string): ParsedQuantity | null {
     return { amount: Number(fraction[1]) / denominator, length: offset + fraction[0].length };
   }
 
-  const glyph = trimmed[0];
-  if (glyph && glyph in VULGAR_FRACTIONS) {
-    return { amount: VULGAR_FRACTIONS[glyph]!, length: offset + 1 };
+  const leading = trimmed[0];
+  const bare = leading === undefined ? undefined : VULGAR_FRACTIONS[leading];
+  if (bare !== undefined) {
+    return { amount: bare, length: offset + 1 };
   }
 
   // English groups thousands with the comma it never uses as a decimal mark, so
@@ -168,7 +171,8 @@ export function parseLeadingQuantity(text: string): ParsedQuantity | null {
   // behind in the item name.
   const decimal = /^(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)/.exec(trimmed);
   if (decimal) {
-    const amount = Number(decimal[1]!.replace(/,/g, ""));
+    const [digits = ""] = decimal.slice(1);
+    const amount = Number(digits.replace(/,/g, ""));
     if (Number.isFinite(amount)) return { amount, length: offset + decimal[0].length };
   }
 
@@ -215,7 +219,7 @@ function parseWrittenFraction(text: string): ParsedQuantity | null {
   if (!match) return null;
 
   const numerator = match[1] ? WRITTEN_NUMERATORS[match[1].toLowerCase()] : 1;
-  const denominator = WRITTEN_DENOMINATORS[match[2]!.toLowerCase()];
+  const denominator = WRITTEN_DENOMINATORS[(match[2] ?? "").toLowerCase()];
   if (!numerator || !denominator) return null;
 
   const rest = text
@@ -262,7 +266,7 @@ export function parseLeadingRange(text: string): ParsedRange | null {
   return {
     amount: low.amount,
     max: high.amount,
-    separator: separator[1]!,
+    separator: separator[1] ?? "",
     length: low.length + separator[0].length + high.length,
   };
 }
@@ -494,10 +498,11 @@ const MEASURE_ADJECTIVES = new Set([
 /** The adjective a line put in front of its measure, and what stands after it. */
 function takeMeasureAdjective(text: string): { adjective: string | null; rest: string } {
   const match = /^\s*([A-Za-z]+)\s+/.exec(text);
-  if (!match || !MEASURE_ADJECTIVES.has(match[1]!.toLowerCase())) {
+  const [adjective = ""] = match?.slice(1) ?? [];
+  if (!match || !MEASURE_ADJECTIVES.has(adjective.toLowerCase())) {
     return { adjective: null, rest: text };
   }
-  return { adjective: match[1]!, rest: text.slice(match[0].length) };
+  return { adjective, rest: text.slice(match[0].length) };
 }
 
 /**
@@ -542,7 +547,8 @@ function readCountMultiplier(text: string): { times: number; rest: string } | nu
   const match = /^\s*([A-Za-z]+)\s+/.exec(text);
   if (!match) return null;
 
-  const times = COUNT_MULTIPLIERS[normalizeUnitKey(match[1]!)];
+  const [word = ""] = match.slice(1);
+  const times = COUNT_MULTIPLIERS[normalizeUnitKey(word)];
   if (times === undefined) return null;
   return { times, rest: text.slice(match[0].length) };
 }
