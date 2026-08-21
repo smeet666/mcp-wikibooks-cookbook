@@ -22,6 +22,113 @@ import {
 } from "./shared.js";
 import { strictInput } from "./arguments.js";
 import type { ToolResult } from "./shared.js";
+import type { RecipePage } from "../types.js";
+
+/**
+ * Whether this page is a recipe at all, and what it published of one.
+ *
+ * The Cookbook keeps recipes and reference pages in one namespace, so a page
+ * can be about an ingredient, a technique or a cuisine and still be reached by
+ * a recipe search. A page that reads as a recipe and publishes no list this
+ * server can find is a different thing again, and saying so is what stops "no
+ * ingredients" being read as "this dish needs none".
+ */
+function notesOnWhatThePageIs(
+  data: RecipePage,
+  read: { readsAsRecipe: boolean; ingredients: unknown[]; equipment: unknown[] },
+): string[] {
+  const notes: string[] = [];
+
+  if (!read.readsAsRecipe) {
+    const lists = read.ingredients.length + read.equipment.length;
+    notes.push(
+      "This page carries no recipe: no recipe box, no recipe banner, and no procedure with steps in it. It may be a page about an ingredient, a technique or a cuisine, or an index pointing at the recipes themselves." +
+        (lists > 0
+          ? ` The ${lists} bulleted line(s) under its headings are the book's own links and were not read as a recipe's ingredients or equipment.`
+          : "") +
+        " Follow the link and read it.",
+    );
+  } else if (data.ingredients.length === 0) {
+    const headings = data.sectionTitles.filter((title) => title !== "");
+    notes.push(
+      "This page reads as a recipe and publishes no ingredient list under a heading this server reads, as a list or as a table." +
+        (headings.length > 0
+          ? ` The headings it does publish are ${headings.map((title) => `"${title}"`).join(", ")}.`
+          : "") +
+        " Follow the link and read the list where the page put it.",
+    );
+  }
+  if (data.unreadableIngredients > 0) {
+    notes.push(
+      `${data.unreadableIngredients} ingredient line(s) the page writes came back empty, everything on them being markup this server renders as nothing, and are missing from the list below.`,
+    );
+  }
+  if (data.furtherSections.length > 0) {
+    notes.push(
+      `This page publishes further sections beside the ones read: ${data.furtherSections.map((title) => `"${title}"`).join(", ")}. A heading owns what is nested under it and stops at the next heading of its own level, so what came back is the first list of each kind. A page carrying two recipes carries the second one there.`,
+    );
+  }
+  if (data.steps.length === 0 && data.ingredients.length > 0) {
+    notes.push(
+      "This page publishes ingredients but no procedure under a heading this server reads.",
+    );
+  }
+
+  // Named among the first notes: a procedure reading "mix all ingredients"
+  // covers one of these lists, and a caller shown the lines together buys
+  // three times the fish and cooks a dish nobody wrote.
+  const variants = [...new Set(data.ingredientVariants.filter((name) => name !== null))];
+  if (variants.length > 0) {
+    const alsoOwn = data.ingredientVariants.some((name) => name === null);
+    notes.push(
+      `This page publishes ${variants.length} alternative ingredient list(s), under ${variants.map((name) => `"${name}"`).join(", ")}${alsoOwn ? ", beside the list the recipe states for itself" : ""}. Each one replaces the others rather than adding to them, so one of them is used and the procedure applies to whichever it is, whatever it says about mixing all the ingredients. 'variant' on every line says which list it came from.`,
+    );
+  }
+
+  return notes;
+}
+
+/**
+ * What multiplying the lines did, and what the page says about time.
+ *
+ * A page that states its time in phases and no total is not a page that failed
+ * to state one: a fermentation, a marinade or a rest is not cooking time, and
+ * adding them would publish a figure the page never did.
+ */
+function notesOnTheScalingAndTheTime(
+  data: RecipePage,
+  ingredients: readonly ScaledIngredient[],
+  factor: number,
+): string[] {
+  const notes: string[] = [];
+
+  const rounded = ingredients.filter((entry) => entry.scaling === "rounded").length;
+  const unscaled = ingredients.filter((entry) => entry.scaling === "unscaled").length;
+  if (rounded > 0) {
+    notes.push(
+      `${rounded} quantity(ies) were rounded to stay usable rather than left as fractions.`,
+    );
+  }
+  if (unscaled > 0) {
+    notes.push(
+      `${unscaled} line(s) carry no quantity that can be multiplied and were returned as published.`,
+    );
+  }
+  if (factor !== 1) {
+    notes.push(SCALING_CAVEAT);
+  }
+
+  const phased = data.timePhases.filter((phase) => phase.minutes !== null);
+  if (data.totalMinutes === null && phased.length > 0) {
+    notes.push(
+      `This page states its time in phases (${phased.map((phase) => (phase.label === null ? phase.text : `${phase.label}: ${phase.text}`)).join("; ")}) and states no total, so 'total_minutes' is null. The phases are not added: a fermentation, a marinade or a rest is not cooking time, and their sum is a figure the page never published. 'time_phases' carries each one.`,
+    );
+  } else if (data.totalMinutes === null && data.timeText !== null) {
+    notes.push(`The page states its time as "${data.timeText}", which is not a number of minutes.`);
+  }
+
+  return notes;
+}
 
 export const getRecipeDescription = [
   "Read one Wikibooks Cookbook page: ingredients, equipment, steps, yield, time, difficulty, category, and the nutrition panel when the page carries one.",
@@ -196,7 +303,9 @@ export async function runGetRecipe(
           equipment: [],
         };
     const notes: string[] = [];
-    if (cached) notes.push("Served from this server's short-lived in-memory cache.");
+    if (cached) {
+      notes.push("Served from this server's short-lived in-memory cache.");
+    }
     // Named first among the notes, and never dropped: the recipe answered is
     // not the page the caller asked for, and a caller told nothing would credit
     // the wrong address.
@@ -238,76 +347,10 @@ export async function runGetRecipe(
       );
     }
 
-    if (!read.readsAsRecipe) {
-      const lists = read.ingredients.length + read.equipment.length;
-      notes.push(
-        "This page carries no recipe: no recipe box, no recipe banner, and no procedure with steps in it. It may be a page about an ingredient, a technique or a cuisine, or an index pointing at the recipes themselves." +
-          (lists > 0
-            ? ` The ${lists} bulleted line(s) under its headings are the book's own links and were not read as a recipe's ingredients or equipment.`
-            : "") +
-          " Follow the link and read it.",
-      );
-    } else if (data.ingredients.length === 0) {
-      const headings = data.sectionTitles.filter((title) => title !== "");
-      notes.push(
-        "This page reads as a recipe and publishes no ingredient list under a heading this server reads, as a list or as a table." +
-          (headings.length > 0
-            ? ` The headings it does publish are ${headings.map((title) => `"${title}"`).join(", ")}.`
-            : "") +
-          " Follow the link and read the list where the page put it.",
-      );
-    }
-    if (data.unreadableIngredients > 0) {
-      notes.push(
-        `${data.unreadableIngredients} ingredient line(s) the page writes came back empty, everything on them being markup this server renders as nothing, and are missing from the list below.`,
-      );
-    }
-    if (data.furtherSections.length > 0) {
-      notes.push(
-        `This page publishes further sections beside the ones read: ${data.furtherSections.map((title) => `"${title}"`).join(", ")}. A heading owns what is nested under it and stops at the next heading of its own level, so what came back is the first list of each kind. A page carrying two recipes carries the second one there.`,
-      );
-    }
-    if (data.steps.length === 0 && data.ingredients.length > 0) {
-      notes.push(
-        "This page publishes ingredients but no procedure under a heading this server reads.",
-      );
-    }
+    notes.push(...notesOnWhatThePageIs(data, read));
 
-    // Named among the first notes: a procedure reading "mix all ingredients"
-    // covers one of these lists, and a caller shown the lines together buys
-    // three times the fish and cooks a dish nobody wrote.
-    const variants = [...new Set(data.ingredientVariants.filter((name) => name !== null))];
-    if (variants.length > 0) {
-      const alsoOwn = data.ingredientVariants.some((name) => name === null);
-      notes.push(
-        `This page publishes ${variants.length} alternative ingredient list(s), under ${variants.map((name) => `"${name}"`).join(", ")}${alsoOwn ? ", beside the list the recipe states for itself" : ""}. Each one replaces the others rather than adding to them, so one of them is used and the procedure applies to whichever it is, whatever it says about mixing all the ingredients. 'variant' on every line says which list it came from.`,
-      );
-    }
+    notes.push(...notesOnTheScalingAndTheTime(data, ingredients, factor));
 
-    const rounded = ingredients.filter((entry) => entry.scaling === "rounded").length;
-    const unscaled = ingredients.filter((entry) => entry.scaling === "unscaled").length;
-    if (rounded > 0) {
-      notes.push(
-        `${rounded} quantity(ies) were rounded to stay usable rather than left as fractions.`,
-      );
-    }
-    if (unscaled > 0) {
-      notes.push(
-        `${unscaled} line(s) carry no quantity that can be multiplied and were returned as published.`,
-      );
-    }
-    if (factor !== 1) notes.push(SCALING_CAVEAT);
-
-    const phased = data.timePhases.filter((phase) => phase.minutes !== null);
-    if (data.totalMinutes === null && phased.length > 0) {
-      notes.push(
-        `This page states its time in phases (${phased.map((phase) => (phase.label === null ? phase.text : `${phase.label}: ${phase.text}`)).join("; ")}) and states no total, so 'total_minutes' is null. The phases are not added: a fermentation, a marinade or a rest is not cooking time, and their sum is a figure the page never published. 'time_phases' carries each one.`,
-      );
-    } else if (data.totalMinutes === null && data.timeText !== null) {
-      notes.push(
-        `The page states its time as "${data.timeText}", which is not a number of minutes.`,
-      );
-    }
     if (data.license) {
       notes.push(
         `Published under ${data.license.title}. Quoting the recipe means crediting Wikibooks and naming that licence.`,
@@ -401,6 +444,54 @@ function formatFactor(factor: number): string {
   return String(Number(factor.toPrecision(3)));
 }
 
+/** What follows the ingredients: the tools, the procedure, and what the page states of nutrition. */
+function renderEquipmentStepsAndFacts(structured: {
+  equipment: string[];
+  steps: string[];
+  nutrition: { serving_size: string | null; calories: string | null } | null;
+}): string[] {
+  const lines: string[] = [];
+
+  if (structured.equipment.length > 0) {
+    lines.push("", "Equipment:");
+    for (const item of structured.equipment) {
+      lines.push(`  ${item}`);
+    }
+  }
+  if (structured.steps.length > 0) {
+    lines.push("", "Procedure:");
+    structured.steps.forEach((step, index) => {
+      lines.push(`  ${index + 1}. ${step}`);
+    });
+  }
+  if (structured.nutrition) {
+    const facts = [
+      structured.nutrition.serving_size ? `per ${structured.nutrition.serving_size}` : "",
+      structured.nutrition.calories ? `${structured.nutrition.calories} calories` : "",
+    ].filter(Boolean);
+    if (facts.length > 0) {
+      lines.push("", `Nutrition as published: ${facts.join(", ")}`);
+    }
+  }
+
+  return lines;
+}
+
+/** The yield line: what was asked for beside what the page published, or the page's own words. */
+function yieldLine(
+  rescaled: boolean,
+  counted: string,
+  published: { original_text: string | null; requested: number | null; unit: string | null },
+): string {
+  if (rescaled) {
+    return `Yield: ${published.requested} ${counted} (published as ${published.original_text ?? "no yield"})`;
+  }
+  if (published.original_text === null) {
+    return "";
+  }
+  return `Yield: ${published.original_text}${published.unit ? "" : " servings"}`;
+}
+
 function renderRecipe(
   title: string,
   structured: {
@@ -425,11 +516,7 @@ function renderRecipe(
   const head = [
     title,
     structured.category ? `Category: ${structured.category}` : "",
-    rescaled
-      ? `Yield: ${structured.yield.requested} ${counted} (published as ${structured.yield.original_text ?? "no yield"})`
-      : structured.yield.original_text
-        ? `Yield: ${structured.yield.original_text}${structured.yield.unit ? "" : " servings"}`
-        : "",
+    yieldLine(rescaled, counted, structured.yield),
     structured.time_text ? `Time: ${structured.time_text}` : "",
     structured.difficulty === null
       ? ""
@@ -449,9 +536,13 @@ function renderRecipe(
     // without it, and as a soak and a glaze with it.
     let printed: string | null = null;
     ingredients.forEach((entry, index) => {
-      if (variantOf(index) !== null) return;
+      if (variantOf(index) !== null) {
+        return;
+      }
       const group = groupOf(index);
-      if (group !== null && group !== printed) lines.push(`  ${group}:`);
+      if (group !== null && group !== printed) {
+        lines.push(`  ${group}:`);
+      }
       printed = group;
       const indent = group === null ? "  " : "    ";
       lines.push(`${indent}${shown(entry)}`);
@@ -467,31 +558,17 @@ function renderRecipe(
     ),
   ];
   if (alternatives.length > 0) {
-    lines.push("", `Alternative ingredient lists, one of which is used instead of the others:`);
+    lines.push("", "Alternative ingredient lists, one of which is used instead of the others:");
     for (const name of alternatives) {
       lines.push(`  ${name}:`);
       ingredients.forEach((entry, index) => {
-        if (variantOf(index) === name) lines.push(`    ${shown(entry)}`);
+        if (variantOf(index) === name) {
+          lines.push(`    ${shown(entry)}`);
+        }
       });
     }
   }
-  if (structured.equipment.length > 0) {
-    lines.push("", "Equipment:");
-    for (const item of structured.equipment) lines.push(`  ${item}`);
-  }
-  if (structured.steps.length > 0) {
-    lines.push("", "Procedure:");
-    structured.steps.forEach((step, index) => {
-      lines.push(`  ${index + 1}. ${step}`);
-    });
-  }
-  if (structured.nutrition) {
-    const facts = [
-      structured.nutrition.serving_size ? `per ${structured.nutrition.serving_size}` : "",
-      structured.nutrition.calories ? `${structured.nutrition.calories} calories` : "",
-    ].filter(Boolean);
-    if (facts.length > 0) lines.push("", `Nutrition as published: ${facts.join(", ")}`);
-  }
+  lines.push(...renderEquipmentStepsAndFacts(structured));
 
   return lines.join("\n");
 }

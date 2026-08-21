@@ -96,7 +96,9 @@ describe("the whole batter, from four eaters to twenty-four", () => {
       "6 capfuls rum",
       "1.5 l milk",
     ]);
-    for (const entry of lines) expect(entry.scaling, entry.original).toBe("scaled");
+    for (const entry of lines) {
+      expect(entry.scaling, entry.original).toBe("scaled");
+    }
   });
 });
 

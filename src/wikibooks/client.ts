@@ -210,7 +210,9 @@ export class CookbookClient {
    */
   async getRecipe(reference: string): Promise<Read<RecipePage>> {
     const trimmed = reference.trim();
-    if (trimmed === "") throw invalidInput("A page name or key is required.");
+    if (trimmed === "") {
+      throw invalidInput("A page name or key is required.");
+    }
 
     const walked: string[] = [];
     const visited = new Set<string>([normaliseKey(trimmed)]);

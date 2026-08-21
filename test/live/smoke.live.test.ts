@@ -43,7 +43,9 @@ live("the Wikimedia gateway", () => {
     expect(data.ingredients.length).toBeGreaterThan(0);
     // Every row of such a table names an ingredient, and the quantity sits in
     // whichever column suits it. A row read as a percentage would carry a "%".
-    for (const line of data.ingredients) expect(line).not.toMatch(/%/);
+    for (const line of data.ingredients) {
+      expect(line).not.toMatch(/%/);
+    }
     expect(data.ingredients.some((line) => /yolk/i.test(line))).toBe(true);
   });
 

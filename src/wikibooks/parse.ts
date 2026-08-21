@@ -33,6 +33,17 @@ import {
  * key is what makes the answer a cookbook answer, and the count of what was set
  * aside travels with it so nobody reads a short list as a rare dish.
  */
+/** How many minutes one of the unit a duration was written in is worth. */
+function minutesPerUnit(unit: string): number {
+  if (unit.startsWith("d")) {
+    return 1440;
+  }
+  if (unit.startsWith("h")) {
+    return 60;
+  }
+  return 1;
+}
+
 export function toSearchResults(
   payload: unknown,
   onSkip: (count: number) => void,
@@ -75,7 +86,9 @@ export function toSearchResults(
     });
   }
 
-  if (unreadable > 0) onSkip(unreadable);
+  if (unreadable > 0) {
+    onSkip(unreadable);
+  }
   return { results, outsideCookbook };
 }
 
@@ -87,7 +100,9 @@ export function toSearchResults(
  * the text rather than the text itself.
  */
 export function cleanExcerpt(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
   const text = decodeEntities(value.replace(/<[^>]*>/g, ""))
     .replace(/\s+/g, " ")
     .trim();
@@ -96,14 +111,20 @@ export function cleanExcerpt(value: unknown): string | null {
 
 /** The thumbnail address, made absolute: the gateway gives it protocol-relative. */
 function thumbnailUrl(value: unknown): string | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object") {
+    return null;
+  }
   const url = (value as { url?: unknown }).url;
-  if (typeof url !== "string" || url.trim() === "") return null;
+  if (typeof url !== "string" || url.trim() === "") {
+    return null;
+  }
   return url.startsWith("//") ? `https:${url}` : url;
 }
 
 function nonEmpty(value: unknown): string | null {
-  if (typeof value !== "string") return null;
+  if (typeof value !== "string") {
+    return null;
+  }
   const trimmed = value.trim();
   return trimmed === "" ? null : trimmed;
 }
@@ -147,7 +168,9 @@ const ALTERNATIVE_HEADING =
  */
 function headedChunks(sections: Section[], test: RegExp): SectionChunk[] {
   const at = sections.findIndex((section) => section.level > 0 && test.test(section.title));
-  if (at < 0) return [];
+  if (at < 0) {
+    return [];
+  }
 
   const others = Object.values(HEADINGS).filter((heading) => heading !== test);
   return sectionChunks(sections, at, {
@@ -169,7 +192,9 @@ function headedChunks(sections: Section[], test: RegExp): SectionChunk[] {
 function unreadSiblingSections(sections: Section[], test: RegExp): string[] {
   const found = sections.find((section) => section.level > 0 && test.test(section.title));
   const at = found === undefined ? -1 : sections.indexOf(found);
-  if (found === undefined) return [];
+  if (found === undefined) {
+    return [];
+  }
   const level = found.level;
 
   return sections
@@ -202,11 +227,15 @@ export function readRedirect(payload: Record<string, unknown>): { target: string
   const inline = /^\s*#\s*redirect\s*:?\s*\[\[\s*([^\]|#]+)/i.exec(source);
   if (inline) {
     const target = (inline[1] ?? "").trim();
-    if (target !== "") return { target };
+    if (target !== "") {
+      return { target };
+    }
   }
 
   const path = payload.redirect_target;
-  if (typeof path !== "string" || path.trim() === "") return null;
+  if (typeof path !== "string" || path.trim() === "") {
+    return null;
+  }
   const last = path.split("?")[0]?.split("/").filter(Boolean).pop() ?? "";
   const target = safeDecode(last).replace(/_/g, " ").trim();
   return target === "" ? null : { target };
@@ -235,7 +264,9 @@ export function toPageDocument(payload: unknown, url: string): PageDocument {
   const redirect = readRedirect(record);
   if (redirect) {
     const key = typeof record.key === "string" && record.key !== "" ? record.key : "";
-    if (key === "") throw parseFailure("The gateway's page answer carried no key.", { url });
+    if (key === "") {
+      throw parseFailure("The gateway's page answer carried no key.", { url });
+    }
     return { kind: "redirect", key, target: redirect.target };
   }
   return { kind: "recipe", page: toRecipePage(payload, url) };
@@ -255,7 +286,9 @@ export function toRecipePage(payload: unknown, url: string): RecipePage {
     );
   }
   const key = typeof record.key === "string" ? record.key : "";
-  if (key === "") throw parseFailure("The gateway's page answer carried no key.", { url });
+  if (key === "") {
+    throw parseFailure("The gateway's page answer carried no key.", { url });
+  }
 
   const source = stripComments(published);
   const sections = splitSections(source);
@@ -392,7 +425,9 @@ function tableIngredients(body: string): string[] {
     const nameAt = table.headers.findIndex((header) => NAME_COLUMN.test(header));
     // Without a column saying which cell names the ingredient, the table is
     // some other table: a temperature chart, a list of substitutions.
-    if (nameAt < 0) continue;
+    if (nameAt < 0) {
+      continue;
+    }
     const quantityAt = table.headers
       .map((header, index) => (index !== nameAt && QUANTITY_COLUMN.test(header) ? index : -1))
       .filter((index) => index >= 0);
@@ -401,9 +436,13 @@ function tableIngredients(body: string): string[] {
       // A single cell spanning the table labels the rows under it, and a row
       // adding the table up is arithmetic about the recipe rather than part of
       // it.
-      if (row.length < 2) continue;
+      if (row.length < 2) {
+        continue;
+      }
       const name = row[nameAt] ?? "";
-      if (name === "" || /^totals?$/i.test(name)) continue;
+      if (name === "" || /^totals?$/i.test(name)) {
+        continue;
+      }
 
       const amount = quantityAt.map((index) => row[index] ?? "").find(filled) ?? "";
       lines.push(amount === "" ? name : `${amount} ${name}`);
@@ -434,15 +473,21 @@ function readLead(body: string): string | null {
 }
 
 function flattenOrNull(value: string | null): string | null {
-  if (value === null) return null;
+  if (value === null) {
+    return null;
+  }
   const text = flattenWikitext(value).trim();
   return text === "" ? null : text;
 }
 
 function readNumber(value: string | null): number | null {
-  if (value === null) return null;
+  if (value === null) {
+    return null;
+  }
   const match = /-?\d+(?:\.\d+)?/.exec(value);
-  if (!match) return null;
+  if (!match) {
+    return null;
+  }
   const parsed = Number(match[0]);
   return Number.isFinite(parsed) ? parsed : null;
 }
@@ -461,25 +506,37 @@ function readNumber(value: string | null): number | null {
  * nobody published.
  */
 export function readYieldCount(text: string | null): { count: number | null; unit: string | null } {
-  if (text === null) return { count: null, unit: null };
+  if (text === null) {
+    return { count: null, unit: null };
+  }
   const flat = flattenWikitext(text).trim();
-  if (flat === "") return { count: null, unit: null };
+  if (flat === "") {
+    return { count: null, unit: null };
+  }
 
   const range = /^\d+(?:\.\d+)?\s*(?:-|–|—|to|or)\s*\d+(?:\.\d+)?/i.exec(flat);
-  if (range) return { count: null, unit: readYieldUnit(flat.slice(range[0].length)) };
+  if (range) {
+    return { count: null, unit: readYieldUnit(flat.slice(range[0].length)) };
+  }
 
   const match = /^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+(?:\.\d+)?))?/.exec(flat);
-  if (!match) return { count: null, unit: null };
+  if (!match) {
+    return { count: null, unit: null };
+  }
   const divisor = match[2] === undefined ? 1 : Number(match[2]);
   const count = Number(match[1]) / divisor;
-  if (!Number.isFinite(count) || count <= 0) return { count: null, unit: null };
+  if (!Number.isFinite(count) || count <= 0) {
+    return { count: null, unit: null };
+  }
 
   return { count, unit: readYieldUnit(flat.slice(match[0].length)) };
 }
 
 function readYieldUnit(after: string): string | null {
   const rest = after.trim();
-  if (rest === "") return null;
+  if (rest === "") {
+    return null;
+  }
   // "servings" is what a bare number already means, so repeating it says
   // nothing the count does not.
   return /^servings?$|^portions?$|^people$/i.test(rest) ? null : rest;
@@ -518,7 +575,9 @@ const LABEL_MAX_CHARS = 30;
  * where the words happen to fall.
  */
 export function readTimePhases(raw: string | null): TimePhase[] {
-  if (raw === null) return [];
+  if (raw === null) {
+    return [];
+  }
 
   return raw
     .split(LINE_BREAK_TAG)
@@ -539,7 +598,9 @@ export function readTimePhases(raw: string | null): TimePhase[] {
 /** The total a page states itself, never one added up from its phases. */
 function statedTotalMinutes(phases: TimePhase[]): number | null {
   const stated = phases.find((phase) => phase.label !== null && TOTAL_LABEL.test(phase.label));
-  if (stated) return stated.minutes;
+  if (stated) {
+    return stated.minutes;
+  }
   const only = phases.length === 1 ? phases[0] : undefined;
   return only && only.label === null ? only.minutes : null;
 }
@@ -572,8 +633,10 @@ export function parseDuration(text: string): { minutes: number | null; minutesMa
 }
 
 function unitMinutes(unit: string): number {
-  if (/^d/.test(unit)) return 1440;
-  return /^h/.test(unit) ? 60 : 1;
+  if (unit.startsWith("d")) {
+    return 1440;
+  }
+  return unit.startsWith("h") ? 60 : 1;
 }
 
 /**
@@ -583,7 +646,9 @@ function unitMinutes(unit: string): number {
  * never a figure added up from how many steps it has.
  */
 export function parseMinutes(text: string | null): number | null {
-  if (text === null) return null;
+  if (text === null) {
+    return null;
+  }
   const flat = flattenWikitext(text).toLowerCase();
 
   const GLYPHS: Record<string, number> = { "½": 0.5, "¼": 0.25, "¾": 0.75, "⅓": 1 / 3, "⅔": 2 / 3 };
@@ -598,29 +663,39 @@ export function parseMinutes(text: string | null): number | null {
     const whole = match[1] === undefined ? 0 : Number(match[1]);
     const fraction = match[2] === undefined ? 0 : (GLYPHS[match[2]] ?? 0);
     const amount = whole + fraction;
-    if (!Number.isFinite(amount) || amount === 0) continue;
+    if (!Number.isFinite(amount) || amount === 0) {
+      continue;
+    }
     const unit = match[3] ?? "";
-    const minutes = /^d/.test(unit) ? 1440 : /^(?:h)/.test(unit) ? 60 : 1;
+    const minutes = minutesPerUnit(unit);
     total += amount * minutes;
     matched = true;
   }
 
-  if (!matched) return null;
+  if (!matched) {
+    return null;
+  }
   const rounded = Math.round(total);
   return rounded > 0 ? rounded : null;
 }
 
 function readLicense(value: unknown): { title: string; url: string } | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object") {
+    return null;
+  }
   const record = value as Record<string, unknown>;
   const title = nonEmpty(record.title);
   const url = nonEmpty(record.url);
-  if (!title || !url) return null;
+  if (!title || !url) {
+    return null;
+  }
   return { title, url };
 }
 
 function readRevisedAt(value: unknown): string | null {
-  if (!value || typeof value !== "object") return null;
+  if (!value || typeof value !== "object") {
+    return null;
+  }
   return nonEmpty((value as Record<string, unknown>).timestamp);
 }
 
@@ -633,7 +708,9 @@ function readRevisedAt(value: unknown): string | null {
  */
 export function readNutrition(source: string): NutritionFacts | null {
   const template = findTemplates(source, "nutritionsummary")[0] ?? null;
-  if (!template) return null;
+  if (!template) {
+    return null;
+  }
 
   const read = (name: string, position: number) =>
     flattenOrNull(templateArg(template, name, position));

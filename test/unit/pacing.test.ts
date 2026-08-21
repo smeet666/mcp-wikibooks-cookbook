@@ -100,7 +100,9 @@ describe("RateLimiter", () => {
 
   it("never widens past its ceiling", () => {
     const limiter = new RateLimiter({ intervalMs: 1000, maxIntervalMs: 4000 });
-    for (let i = 0; i < 10; i += 1) limiter.pushBack();
+    for (let i = 0; i < 10; i += 1) {
+      limiter.pushBack();
+    }
     expect(limiter.currentIntervalMs).toBe(4000);
   });
 });

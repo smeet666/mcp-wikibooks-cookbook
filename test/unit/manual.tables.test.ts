@@ -73,7 +73,9 @@ describe("a recipe whose ingredients are a table", () => {
 
   it("takes the column that carries the quantity, and never the percentage", () => {
     const page = toRecipePage(TABLE_PAGE, "https://example.invalid");
-    for (const line of page.ingredients) expect(line).not.toMatch(/%/);
+    for (const line of page.ingredients) {
+      expect(line).not.toMatch(/%/);
+    }
   });
 
   it("leaves the rest of the page readable", () => {

@@ -40,7 +40,7 @@ describe("a pinch carried from six servings to twenty-five", () => {
 });
 
 describe("the other approximate measures", () => {
-  const cases: Array<[string, string]> = [
+  const cases: [string, string][] = [
     ["1 dash hot sauce", "4 dashes hot sauce"],
     ["a splash of vinegar", "4 splashes vinegar"],
     ["1 handful parsley", "4 handfuls parsley"],

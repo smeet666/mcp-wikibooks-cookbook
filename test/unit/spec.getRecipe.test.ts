@@ -36,7 +36,9 @@ async function read(
   await vi.advanceTimersByTimeAsync(AMPLE_MS);
   await held;
   const result = await pending;
-  if (result.isError) return { structured: {}, text: textOf(result), isError: true };
+  if (result.isError) {
+    return { structured: {}, text: textOf(result), isError: true };
+  }
   return { structured: structuredOf(result), text: textOf(result), isError: false };
 }
 
@@ -217,7 +219,9 @@ describe("scaling a whole page", () => {
   it("never leaves a fractional count that is neither whole nor half", async () => {
     const lines = await noodlesAt(3);
     for (const line of lines) {
-      if (line.unit !== null || line.amount === null) continue;
+      if (line.unit !== null || line.amount === null) {
+        continue;
+      }
       expect(Math.abs(line.amount * 2 - Math.round(line.amount * 2))).toBeLessThan(1e-9);
     }
   });
@@ -241,7 +245,9 @@ describe("scaling a whole page", () => {
     // is not.
     expect(Math.abs(low - 112.5) / 112.5).toBeLessThan(0.05);
     expect(Math.abs(high - 250) / 250).toBeLessThan(0.05);
-    if (low !== 112.5 || high !== 250) expect(butter.scaling).toBe("rounded");
+    if (low !== 112.5 || high !== 250) {
+      expect(butter.scaling).toBe("rounded");
+    }
   });
 
   it("carries the metric and the imperial figure of a line together", async () => {
@@ -264,7 +270,9 @@ describe("scaling a whole page", () => {
     const lines = await noodlesAt(200);
     for (const line of lines) {
       expect(line.text).not.toMatch(/NaN|Infinity/);
-      if (line.amount !== null) expect(line.amount).toBeGreaterThan(0);
+      if (line.amount !== null) {
+        expect(line.amount).toBeGreaterThan(0);
+      }
     }
     const noodles = lines.find((line) => /flat noodles/.test(line.original)) as ScaledLine;
     expect(canonical(noodles.amount as number, noodles.unit)).toBeCloseTo(450 * (200 / 6), 2);
@@ -299,7 +307,9 @@ describe("a page counted in objects rather than servings", () => {
     const oats = (structured.ingredients as ScaledLine[]).find((line) =>
       /oats/.test(line.original),
     ) as ScaledLine;
-    if (oats.text === oats.original) return;
+    if (oats.text === oats.original) {
+      return;
+    }
     expect(oats.text).not.toMatch(/\b500 g\b/);
     expect(oats.text).not.toMatch(/\b1\.1 lb\b/);
   });
@@ -404,7 +414,7 @@ describe("published text cannot forge a line this server writes", () => {
   it("ends on its own credit, whatever the page published", async () => {
     const { text } = await read(forged, { id: "Cookbook:Spec_Dish" });
     const lines = text.trimEnd().split("\n");
-    expect(lines[lines.length - 1]).toMatch(/^Source: Wikibooks Cookbook/);
+    expect(lines.at(-1)).toMatch(/^Source: Wikibooks Cookbook/);
   });
 
   it("keeps the published wording untouched in the structured payload", async () => {

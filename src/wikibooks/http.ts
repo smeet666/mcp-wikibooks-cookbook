@@ -57,15 +57,138 @@ const RETRIES_AFTER_SILENCE = 1;
  * Returns null when it says neither, so the caller falls back to its own wait.
  */
 export function parseRetryAfter(value: string | null, now = Date.now()): number | null {
-  if (!value) return null;
+  if (!value) {
+    return null;
+  }
   const trimmed = value.trim();
 
   const seconds = Number(trimmed);
-  if (Number.isFinite(seconds) && seconds >= 0) return Math.round(seconds * 1000);
+  if (Number.isFinite(seconds) && seconds >= 0) {
+    return Math.round(seconds * 1000);
+  }
 
   const at = Date.parse(trimmed);
-  if (Number.isNaN(at)) return null;
+  if (Number.isNaN(at)) {
+    return null;
+  }
   return Math.max(0, at - now);
+}
+
+/** What a refusal from the gateway amounts to, and what it costs the pacing. */
+type Refusal =
+  | { kind: "refused"; error: Error; pushBack: boolean }
+  | { kind: "again"; waitMs: number; pushBack: boolean };
+
+/**
+ * Read a status the gateway answered with, apart from the loop that retries.
+ *
+ * An abandoned body keeps its socket out of the pool until it is consumed or
+ * cancelled, so a body this never reads is cancelled here. A request the
+ * gateway read and would not run, and a page it says does not exist, are both
+ * settled questions: calling either a network failure invites a retry of
+ * something only the caller can fix.
+ */
+async function readRefusal(
+  response: Response,
+  url: string,
+  attempt: number,
+  maxRetries: number,
+): Promise<Refusal> {
+  if (PUSH_BACK.has(response.status)) {
+    await response.body?.cancel().catch(() => undefined);
+    const asked = parseRetryAfter(response.headers.get("retry-after"));
+
+    if (asked !== null && asked > LONGEST_WAIT_MS) {
+      return {
+        kind: "refused",
+        pushBack: true,
+        error: rateLimited(
+          `Wikimedia asked this client to wait ${Math.round(asked / 1000)} seconds (HTTP ${response.status}).`,
+          { url, status: response.status },
+        ),
+      };
+    }
+    if (attempt >= maxRetries) {
+      return {
+        kind: "refused",
+        pushBack: true,
+        error: rateLimited(`Wikimedia asked this client to slow down (HTTP ${response.status}).`, {
+          url,
+          status: response.status,
+        }),
+      };
+    }
+    return { kind: "again", pushBack: true, waitMs: asked ?? backoffMs(attempt) };
+  }
+
+  if (RETRYABLE.has(response.status) && attempt < maxRetries) {
+    await response.body?.cancel().catch(() => undefined);
+    return { kind: "again", pushBack: false, waitMs: backoffMs(attempt) };
+  }
+
+  if (response.status === 400 || response.status === 422) {
+    const detail = await readGatewayMessage(response);
+    return {
+      kind: "refused",
+      pushBack: false,
+      error: invalidInput(
+        detail ?? "The Wikimedia gateway would not accept this request.",
+        "Check the arguments: a limit out of range or an empty query is refused rather than answered.",
+      ),
+    };
+  }
+
+  if (response.status === 404 || response.status === 410) {
+    const detail = await readGatewayMessage(response);
+    return {
+      kind: "refused",
+      pushBack: false,
+      error: notFound(detail ?? "The English Wikibooks holds no page at this address.", {
+        url,
+        status: response.status,
+      }),
+    };
+  }
+
+  return {
+    kind: "refused",
+    pushBack: false,
+    error: networkError(`The Wikimedia gateway answered HTTP ${response.status}.`, {
+      url,
+      status: response.status,
+    }),
+  };
+}
+
+/**
+ * What a thrown attempt amounts to, or the error it has become.
+ *
+ * An error this module raised on purpose already says what happened. Silence is
+ * given fewer attempts than a refusal, since asking again costs both sides the
+ * same wait.
+ */
+function readFailure(
+  error: unknown,
+  attempts: { url: string; attempt: number; maxRetries: number; timeoutMs: number },
+): Error {
+  const { url, attempt, maxRetries, timeoutMs } = attempts;
+
+  if (error instanceof Error && error.name === "CookbookError") {
+    throw error;
+  }
+
+  if (error instanceof Error && error.name === "AbortError") {
+    if (attempt >= Math.min(maxRetries, RETRIES_AFTER_SILENCE)) {
+      throw timeoutError(`No answer from the Wikimedia gateway within ${timeoutMs}ms.`, { url });
+    }
+    return error;
+  }
+
+  const failure = error instanceof Error ? error : new Error(String(error));
+  if (attempt >= maxRetries) {
+    throw networkError(`Could not reach the Wikimedia gateway: ${failure.message}`, { url });
+  }
+  return failure;
 }
 
 /** Growing wait with jitter, so several clients do not return in step. */
@@ -106,83 +229,19 @@ export async function fetchText(options: FetchOptions): Promise<string> {
         return await response.text();
       }
 
-      if (PUSH_BACK.has(response.status)) {
+      const verdict = await readRefusal(response, url, attempt, maxRetries);
+      if (verdict.pushBack) {
         limiter.pushBack();
-        await response.body?.cancel().catch(() => undefined);
-        const asked = parseRetryAfter(response.headers.get("retry-after"));
-
-        if (asked !== null && asked > LONGEST_WAIT_MS) {
-          throw rateLimited(
-            `Wikimedia asked this client to wait ${Math.round(asked / 1000)} seconds (HTTP ${response.status}).`,
-            { url, status: response.status },
-          );
-        }
-        if (attempt >= maxRetries) {
-          throw rateLimited(`Wikimedia asked this client to slow down (HTTP ${response.status}).`, {
-            url,
-            status: response.status,
-          });
-        }
-        askedWaitMs = asked ?? backoffMs(attempt);
-        lastError = new Error(`HTTP ${response.status}`);
-        continue;
       }
-
-      if (RETRYABLE.has(response.status) && attempt < maxRetries) {
-        // An abandoned body keeps its socket out of the pool until it is
-        // consumed or cancelled.
-        await response.body?.cancel().catch(() => undefined);
-        lastError = new Error(`HTTP ${response.status}`);
-        askedWaitMs = backoffMs(attempt);
-        continue;
+      if (verdict.kind === "refused") {
+        throw verdict.error;
       }
-
-      // The gateway read the request and would not run it. A parameter out of
-      // range is answered this way, and calling that a network failure invites
-      // a retry of something only the caller can fix.
-      if (response.status === 400 || response.status === 422) {
-        const detail = await readGatewayMessage(response);
-        throw invalidInput(
-          detail ?? "The Wikimedia gateway would not accept this request.",
-          "Check the arguments: a limit out of range or an empty query is refused rather than answered.",
-        );
-      }
-
-      // The gateway answered, and answered that there is no such page. Calling
-      // that a network failure invites a retry of a settled question.
-      if (response.status === 404 || response.status === 410) {
-        const detail = await readGatewayMessage(response);
-        throw notFound(detail ?? "The English Wikibooks holds no page at this address.", {
-          url,
-          status: response.status,
-        });
-      }
-
-      throw networkError(`The Wikimedia gateway answered HTTP ${response.status}.`, {
-        url,
-        status: response.status,
-      });
+      askedWaitMs = verdict.waitMs;
+      lastError = new Error(`HTTP ${response.status}`);
     } catch (error) {
       clearTimeout(deadline);
 
-      // An error this module raised on purpose already says what happened.
-      if (error instanceof Error && error.name === "CookbookError") throw error;
-
-      if (error instanceof Error && error.name === "AbortError") {
-        lastError = error;
-        if (attempt >= Math.min(maxRetries, RETRIES_AFTER_SILENCE)) {
-          throw timeoutError(`No answer from the Wikimedia gateway within ${timeoutMs}ms.`, {
-            url,
-          });
-        }
-        askedWaitMs = backoffMs(attempt);
-        continue;
-      }
-
-      lastError = error instanceof Error ? error : new Error(String(error));
-      if (attempt >= maxRetries) {
-        throw networkError(`Could not reach the Wikimedia gateway: ${lastError.message}`, { url });
-      }
+      lastError = readFailure(error, { url, attempt, maxRetries, timeoutMs });
       askedWaitMs = backoffMs(attempt);
     } finally {
       clearTimeout(deadline);
@@ -203,12 +262,16 @@ export async function fetchText(options: FetchOptions): Promise<string> {
 async function readGatewayMessage(response: Response): Promise<string | null> {
   try {
     const payload: unknown = await response.json();
-    if (!payload || typeof payload !== "object") return null;
+    if (!payload || typeof payload !== "object") {
+      return null;
+    }
     const record = payload as Record<string, unknown>;
     const translations = record.messageTranslations;
     if (translations && typeof translations === "object") {
       const english = (translations as Record<string, unknown>).en;
-      if (typeof english === "string" && english.trim() !== "") return english;
+      if (typeof english === "string" && english.trim() !== "") {
+        return english;
+      }
     }
     if (typeof record.errorKey === "string" && record.errorKey.trim() !== "") {
       return `The Wikimedia gateway refused this request (${record.errorKey}).`;

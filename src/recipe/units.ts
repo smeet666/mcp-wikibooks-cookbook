@@ -206,7 +206,9 @@ const UNITS: Record<string, UnitInfo> = {
  */
 for (const [key, info] of Object.entries(UNITS)) {
   const plural = `${key}s`;
-  if (info.symbol && UNITS[plural] === undefined) UNITS[plural] = info;
+  if (info.symbol && UNITS[plural] === undefined) {
+    UNITS[plural] = info;
+  }
 }
 
 /**
@@ -303,7 +305,9 @@ export function readContainerLoad(word: string): UnitInfo | null {
   const key = normalizeUnitKey(word);
   // At least three letters name the container, which keeps "awful" out of the
   // kitchen.
-  if (!/^[a-z]{3,}fuls?$/.test(key)) return null;
+  if (!/^[a-z]{3,}fuls?$/.test(key)) {
+    return null;
+  }
 
   const canonical = key.endsWith("fuls") ? key.slice(0, -1) : key;
   return { canonical, kind: "approximate", system: "none", plural: `${canonical}s` };
@@ -365,7 +369,9 @@ const DEMOTIONS: Record<string, UnitStep> = {
  */
 export function demoteUnit(unit: UnitInfo): { unit: UnitInfo; per: number } | null {
   const step = DEMOTIONS[normalizeUnitKey(unit.canonical)];
-  if (!step) return null;
+  if (!step) {
+    return null;
+  }
   const target = lookupUnit(step.to);
   return target ? { unit: target, per: step.per } : null;
 }
@@ -411,7 +417,9 @@ export type Divisibility =
  * `QUARTERED_MEASURE`.
  */
 export function unitDivisibility(unit: UnitInfo): Divisibility {
-  if (unit.kind === "approximate") return "whole";
+  if (unit.kind === "approximate") {
+    return "whole";
+  }
   return QUARTERED_MEASURE.test(unit.canonical) ? "quarter" : "half";
 }
 
@@ -468,7 +476,9 @@ export function chooseReadableUnit(unit: UnitInfo, amount: number): ChosenUnit {
 
   while (amount * ratio < 1) {
     const step = demoteUnit(current);
-    if (!step) break;
+    if (!step) {
+      break;
+    }
     ratio *= step.per;
     current = step.unit;
   }
@@ -491,8 +501,14 @@ export function chooseReadableUnit(unit: UnitInfo, amount: number): ChosenUnit {
  * English takes the plural above one, so 1.5 is plural: "1.5 cups", "1 cup".
  */
 export function formatUnit(unit: UnitInfo, amount: number): string {
-  if (unit.symbol) return unit.canonical;
-  if (amount <= 1) return unit.canonical;
-  if (unit.plural) return unit.plural;
+  if (unit.symbol) {
+    return unit.canonical;
+  }
+  if (amount <= 1) {
+    return unit.canonical;
+  }
+  if (unit.plural) {
+    return unit.plural;
+  }
   return `${unit.canonical}s`;
 }
