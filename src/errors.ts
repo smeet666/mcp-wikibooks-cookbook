@@ -26,7 +26,8 @@ export interface ErrorDetails {
   hint?: string;
   /** The address that produced the failure, for a bug report. */
   url?: string;
-  status?: number;
+  status?: number /** What was raised underneath, kept for the bug report the hint asks for. */;
+  cause?: unknown;
 }
 
 export class CookbookError extends Error {
@@ -34,7 +35,7 @@ export class CookbookError extends Error {
   readonly details: ErrorDetails;
 
   constructor(code: ErrorCode, message: string, details: ErrorDetails = {}) {
-    super(message);
+    super(message, details.cause === undefined ? undefined : { cause: details.cause });
     this.name = "CookbookError";
     this.code = code;
     this.details = details;

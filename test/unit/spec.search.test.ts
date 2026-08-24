@@ -253,7 +253,7 @@ describe("the two searches read different indexes", () => {
     await vi.advanceTimersByTimeAsync(AMPLE_MS);
     await held;
     await pending;
-    const agent = String((calls[0]?.["User-Agent"] ?? calls[0]?.["user-agent"] ?? "") as string);
+    const agent = (calls[0]?.["User-Agent"] ?? calls[0]?.["user-agent"] ?? "") as string;
     expect(agent).toMatch(/mcp-wikibooks-cookbook/);
     expect(agent).toMatch(/github\.com\/smeet666\/mcp-wikibooks-cookbook/);
   });

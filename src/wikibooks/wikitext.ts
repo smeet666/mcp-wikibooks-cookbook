@@ -293,7 +293,7 @@ function codePoint(value: number, published: string): string {
 
 /** Drop the leading `Cookbook:` or `w:` from a link target used as its own label. */
 function stripNamespace(target: string): string {
-  const cleaned = String(target).replace(/^:?(?:Cookbook|w|wikipedia|wikt):/i, "");
+  const cleaned = target.replace(/^:?(?:Cookbook|w|wikipedia|wikt):/i, "");
   // A section link shows the page, not the anchor.
   const hash = cleaned.indexOf("#");
   return (hash < 0 ? cleaned : cleaned.slice(0, hash)).trim();
@@ -786,9 +786,9 @@ function readTableBlock(lines: string[]): WikiTable {
       closeCell();
       const heading = trimmed.startsWith("!");
       const parts = trimmed.slice(1).split(heading ? "!!" : "||");
-      parts.slice(0, -1).forEach((part) => {
+      for (const part of parts.slice(0, -1)) {
         row.push(cleanCell(part));
-      });
+      }
       cell = [parts.at(-1) ?? ""];
       // A row holding one heading cell holds a heading row: the marker is per
       // cell, and a row mixing the two is a body row with a label in it.
@@ -817,7 +817,7 @@ function readTableBlock(lines: string[]): WikiTable {
 function cleanCell(raw: string): string {
   const split = raw.indexOf("|");
   const head = split < 0 ? "" : raw.slice(0, split);
-  const body = split >= 0 && /=/.test(head) && !/[[{]/.test(head) ? raw.slice(split + 1) : raw;
+  const body = split >= 0 && head.includes("=") && !/[[{]/.test(head) ? raw.slice(split + 1) : raw;
   return flattenWikitext(body).replace(/\s+/g, " ").trim();
 }
 
