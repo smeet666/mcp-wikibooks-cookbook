@@ -193,8 +193,8 @@ describe("a chain that reaches no recipe", () => {
 });
 
 describe("get_recipe on a redirect", () => {
-  async function read(id: string, pages: Record<string, unknown>) {
-    const { client } = clientFor(pages);
+  async function read(id: string, served: Record<string, unknown>) {
+    const { client } = clientFor(served);
     const result = await settle(runGetRecipe(client, getRecipeInput.parse({ id })), AMPLE_MS);
     return {
       structured: result.structuredContent as Record<string, unknown>,
