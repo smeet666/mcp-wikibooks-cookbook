@@ -224,7 +224,7 @@ describe("a measurement is demoted before it is rounded", () => {
     expect(line.unit ?? "").not.toMatch(/tablespoon|tbsp/i);
     // 0.4 tablespoon is the exact share; whatever unit it is stated in, it is
     // the same quantity.
-    expect(canonical(line.amount as number, line.unit)).toBeCloseTo(0.4 * 14.78676478125, 6);
+    expect(canonical(line.amount as number, line.unit)).toBeCloseTo(0.4 * 14.786_764_781_25, 6);
   });
 
   it("keeps the demoted quantity honest about having moved", () => {
@@ -252,8 +252,8 @@ describe("published ranges survive scaling as ranges", () => {
   it("keeps the upper bound above the lower one", () => {
     const line = one("3–4 tablespoons lamp oil", 2);
     expect(line.amount_max as number).toBeGreaterThan(line.amount as number);
-    expect(canonical(line.amount as number, line.unit)).toBeCloseTo(6 * 14.78676478125, 6);
-    expect(canonical(line.amount_max as number, line.unit)).toBeCloseTo(8 * 14.78676478125, 6);
+    expect(canonical(line.amount as number, line.unit)).toBeCloseTo(6 * 14.786_764_781_25, 6);
+    expect(canonical(line.amount_max as number, line.unit)).toBeCloseTo(8 * 14.786_764_781_25, 6);
   });
 
   it("does not collapse a range into a single number", () => {

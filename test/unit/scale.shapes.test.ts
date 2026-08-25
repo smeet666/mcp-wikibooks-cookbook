@@ -163,7 +163,7 @@ describe("what counts as landing on the exact product", () => {
 
 describe("a quantity smaller than a kitchen scale resolves", () => {
   it("says so rather than handing back a figure alone", () => {
-    expect(scale("1 g saffron", 0.00003).note).toMatch(/kitchen scale resolves/i);
+    expect(scale("1 g saffron", 0.000_03).note).toMatch(/kitchen scale resolves/i);
   });
 });
 

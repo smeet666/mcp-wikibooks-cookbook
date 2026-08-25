@@ -686,7 +686,7 @@ function readLicense(value: unknown): { title: string; url: string } | null {
   const record = value as Record<string, unknown>;
   const title = nonEmpty(record.title);
   const url = nonEmpty(record.url);
-  if (!title || !url) {
+  if (!(title && url)) {
     return null;
   }
   return { title, url };

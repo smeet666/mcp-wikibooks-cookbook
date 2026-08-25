@@ -658,7 +658,7 @@ export function readList(body: string, markers: string): ListRead {
   for (const line of body.split("\n")) {
     const trimmed = line.trimEnd();
     const first = trimmed[0];
-    if (!first || !markers.includes(first)) {
+    if (!(first && markers.includes(first))) {
       continue;
     }
     if (trimmed[1] && markers.includes(trimmed[1])) {
