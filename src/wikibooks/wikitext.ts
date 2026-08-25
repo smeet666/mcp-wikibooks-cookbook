@@ -11,6 +11,12 @@
  * it the other way round leaves a bracket from one construct inside another.
  */
 
+const KNOWN_NAMESPACE = /^:?(?:Cookbook|w|wikipedia|wikt):/i;
+const LIST_MARKERS = /^[:*#;\s]+/;
+const MARKUP_OPENING = /[[{]/;
+const NUMBER_ONLY = /^\d+(?:\.\d+)?$/;
+const PLAIN_NAME = /^[A-Za-z0-9 _-]{1,30}$/;
+
 /** One `{{name|...}}` call, with its arguments in the order they were written. */
 export interface Template {
   name: string;
@@ -126,7 +132,7 @@ function parseTemplateBody(body: string): Template {
     const split = part.indexOf("=");
     // A key is a short word before the equals sign. An equals sign inside a URL
     // is not an argument name, and treating it as one silently drops the value.
-    if (split > 0 && /^[A-Za-z0-9 _-]{1,30}$/.test(part.slice(0, split))) {
+    if (split > 0 && PLAIN_NAME.test(part.slice(0, split))) {
       named[
         part
           .slice(0, split)
@@ -293,7 +299,7 @@ function codePoint(value: number, published: string): string {
 
 /** Drop the leading `Cookbook:` or `w:` from a link target used as its own label. */
 function stripNamespace(target: string): string {
-  const cleaned = target.replace(/^:?(?:Cookbook|w|wikipedia|wikt):/i, "");
+  const cleaned = target.replace(KNOWN_NAMESPACE, "");
   // A section link shows the page, not the anchor.
   const hash = cleaned.indexOf("#");
   return (hash < 0 ? cleaned : cleaned.slice(0, hash)).trim();
@@ -460,7 +466,7 @@ function renderFraction(template: Template): string {
 }
 
 function isNumeric(value: string): boolean {
-  return /^\d+(?:\.\d+)?$/.test(value.trim());
+  return NUMBER_ONLY.test(value.trim());
 }
 
 /**
@@ -705,7 +711,7 @@ export function parseTables(source: string): WikiTable[] {
   let block: string[] = [];
 
   for (const line of text.split("\n")) {
-    const trimmed = line.replace(/^[:*#;\s]+/, "");
+    const trimmed = line.replace(LIST_MARKERS, "");
     if (trimmed.startsWith("{|")) {
       depth += 1;
       if (depth === 1) {
@@ -817,7 +823,8 @@ function readTableBlock(lines: string[]): WikiTable {
 function cleanCell(raw: string): string {
   const split = raw.indexOf("|");
   const head = split < 0 ? "" : raw.slice(0, split);
-  const body = split >= 0 && head.includes("=") && !/[[{]/.test(head) ? raw.slice(split + 1) : raw;
+  const body =
+    split >= 0 && head.includes("=") && !MARKUP_OPENING.test(head) ? raw.slice(split + 1) : raw;
   return flattenWikitext(body).replace(/\s+/g, " ").trim();
 }
 

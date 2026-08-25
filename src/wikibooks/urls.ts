@@ -7,6 +7,9 @@
  * would make possible.
  */
 
+const TYPED_COOKBOOK_PREFIX = /^cookbook\s*:/i;
+const LABELLED_LINE = /^([A-Za-z][A-Za-z ]{1,20}:)(.*)$/;
+
 export const API_BASE = "https://api.wikimedia.org/core/v1/wikibooks/en";
 export const SITE_BASE = "https://en.wikibooks.org/wiki";
 
@@ -75,14 +78,14 @@ export function normaliseKey(reference: string): string {
   const trimmed = named.trim().replace(/[\s_]+/g, " ");
 
   // Spelled with the namespace already: normalise its case and spacing.
-  if (/^cookbook\s*:/i.test(trimmed)) {
+  if (TYPED_COOKBOOK_PREFIX.test(trimmed)) {
     const rest = trimmed.slice(trimmed.indexOf(":") + 1).trimStart();
     return `${COOKBOOK_PREFIX}${capitalise(rest)}`.replace(/ /g, "_");
   }
 
   // Spelled with some other namespace, or with a book's path: the namespace is
   // left alone, since adding "Cookbook:" would name a page that does not exist.
-  const other = /^([A-Za-z][A-Za-z ]{1,20}:)(.*)$/.exec(trimmed);
+  const other = LABELLED_LINE.exec(trimmed);
   if (other) {
     return `${other[1]}${capitalise(other[2] ?? "")}`.replace(/ /g, "_");
   }

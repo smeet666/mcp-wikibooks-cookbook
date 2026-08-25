@@ -25,6 +25,19 @@ import {
   templateArg,
 } from "./wikitext.js";
 
+const BLANK_LINE = /\n{2,}/;
+const DURATION_RANGE =
+  /(\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m|days?)\b/i;
+const NUMBER_OR_FRACTION = /^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+(?:\.\d+)?))?/;
+const NUMBER_RANGE = /^\d+(?:\.\d+)?\s*(?:-|–|—|to|or)\s*\d+(?:\.\d+)?/i;
+const REDIRECT = /^\s*#\s*redirect\s*:?\s*\[\[\s*([^\]|#]+)/i;
+const SERVING_WORD_ALONE = /^servings?$|^portions?$|^people$/i;
+const SIGNED_NUMBER = /-?\d+(?:\.\d+)?/;
+const TABLE_CELL = /^\|/;
+const TOTAL_WORD = /^totals?$/i;
+
+const DIGIT = /\d/;
+
 /**
  * Read a page of search results, keeping only the Cookbook.
  *
@@ -224,7 +237,7 @@ export type PageDocument = PageRedirect | { kind: "recipe"; page: RecipePage };
  */
 export function readRedirect(payload: Record<string, unknown>): { target: string } | null {
   const source = typeof payload.source === "string" ? payload.source : "";
-  const inline = /^\s*#\s*redirect\s*:?\s*\[\[\s*([^\]|#]+)/i.exec(source);
+  const inline = REDIRECT.exec(source);
   if (inline) {
     const target = (inline[1] ?? "").trim();
     if (target !== "") {
@@ -440,7 +453,7 @@ function tableIngredients(body: string): string[] {
         continue;
       }
       const name = row[nameAt] ?? "";
-      if (name === "" || /^totals?$/i.test(name)) {
+      if (name === "" || TOTAL_WORD.test(name)) {
         continue;
       }
 
@@ -466,9 +479,11 @@ function filled(cell: string): boolean {
 function readLead(body: string): string | null {
   const flattened = flattenWikitext(body);
   const paragraphs = flattened
-    .split(/\n{2,}/)
+    .split(BLANK_LINE)
     .map((paragraph) => paragraph.replace(/\s+/g, " ").trim())
-    .filter((paragraph) => paragraph !== "" && !/^\|/.test(paragraph) && paragraph.includes(" "));
+    .filter(
+      (paragraph) => paragraph !== "" && !TABLE_CELL.test(paragraph) && paragraph.includes(" "),
+    );
   return paragraphs[0] ?? null;
 }
 
@@ -484,7 +499,7 @@ function readNumber(value: string | null): number | null {
   if (value === null) {
     return null;
   }
-  const match = /-?\d+(?:\.\d+)?/.exec(value);
+  const match = SIGNED_NUMBER.exec(value);
   if (!match) {
     return null;
   }
@@ -514,12 +529,12 @@ export function readYieldCount(text: string | null): { count: number | null; uni
     return { count: null, unit: null };
   }
 
-  const range = /^\d+(?:\.\d+)?\s*(?:-|–|—|to|or)\s*\d+(?:\.\d+)?/i.exec(flat);
+  const range = NUMBER_RANGE.exec(flat);
   if (range) {
     return { count: null, unit: readYieldUnit(flat.slice(range[0].length)) };
   }
 
-  const match = /^(\d+(?:\.\d+)?)(?:\s*\/\s*(\d+(?:\.\d+)?))?/.exec(flat);
+  const match = NUMBER_OR_FRACTION.exec(flat);
   if (!match) {
     return { count: null, unit: null };
   }
@@ -539,7 +554,7 @@ function readYieldUnit(after: string): string | null {
   }
   // "servings" is what a bare number already means, so repeating it says
   // nothing the count does not.
-  return /^servings?$|^portions?$|^people$/i.test(rest) ? null : rest;
+  return SERVING_WORD_ALONE.test(rest) ? null : rest;
 }
 
 /**
@@ -587,7 +602,7 @@ export function readTimePhases(raw: string | null): TimePhase[] {
     .map((part) => {
       const colon = part.indexOf(":");
       const head = colon > 0 ? part.slice(0, colon).trim() : "";
-      const labelled = head !== "" && head.length <= LABEL_MAX_CHARS && !/\d/.test(head);
+      const labelled = head !== "" && head.length <= LABEL_MAX_CHARS && !DIGIT.test(head);
       const label = labelled ? head : null;
       const text = labelled ? part.slice(colon + 1).trim() : part;
       return { label, text, ...parseDuration(text) };
@@ -617,10 +632,7 @@ function labelledMinutes(phases: TimePhase[], label: RegExp): number | null {
  * end alone states a certainty the page declined to state.
  */
 export function parseDuration(text: string): { minutes: number | null; minutesMax: number | null } {
-  const range =
-    /(\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(\d+(?:\.\d+)?)\s*(hours?|hrs?|h|minutes?|mins?|m|days?)\b/i.exec(
-      flattenWikitext(text).toLowerCase(),
-    );
+  const range = DURATION_RANGE.exec(flattenWikitext(text).toLowerCase());
   if (range) {
     const low = Number(range[1]);
     const high = Number(range[2]);

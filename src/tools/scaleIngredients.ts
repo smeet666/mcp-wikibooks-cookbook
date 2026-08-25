@@ -19,6 +19,8 @@ import {
 import { strictInput } from "./arguments.js";
 import type { ToolResult } from "./shared.js";
 
+const CLAMPED_UP = /clamped up/i;
+
 export const scaleIngredientsDescription = [
   "Rescale a list of English ingredient lines. This contacts no website and works on a list from anywhere, including one the user pasted in.",
   "Give either 'factor' directly, or 'from_servings' and 'to_servings' and the factor is computed.",
@@ -105,7 +107,7 @@ export function runScaleIngredients(args: ScaleIngredientsArgs): ToolResult {
       scaled: ingredients.filter((entry) => entry.scaling === "scaled").length,
       rounded: ingredients.filter((entry) => entry.scaling === "rounded").length,
       unscaled: ingredients.filter((entry) => entry.scaling === "unscaled").length,
-      clamped: ingredients.filter((entry) => /clamped up/i.test(entry.note ?? "")).length,
+      clamped: ingredients.filter((entry) => CLAMPED_UP.test(entry.note ?? "")).length,
     };
 
     if (counts.rounded > 0) {

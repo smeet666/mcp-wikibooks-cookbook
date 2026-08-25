@@ -13,6 +13,8 @@ import { strictInput } from "./arguments.js";
 import { ok, renderResults, searchResultSchema, toToolError } from "./shared.js";
 import type { ToolResult } from "./shared.js";
 
+const COOKBOOK_NAMESPACE = /^Cookbook:/i;
+
 export const searchRecipesDescription = [
   "Search the Wikibooks Cookbook for a recipe, by dish name or by an ingredient it uses.",
   "'text' searches the whole of each page, which is what finds a dish from an ingredient inside it; 'title' matches the page name only, which is exact and misses a dish the Cookbook names differently.",
@@ -67,7 +69,7 @@ function titleCarries(title: string, query: string): boolean {
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ");
 
-  const haystack = ` ${fold(title.replace(/^Cookbook:/i, ""))} `;
+  const haystack = ` ${fold(title.replace(COOKBOOK_NAMESPACE, ""))} `;
   const words = fold(query)
     .split(" ")
     .filter((word) => word.length > 2);
