@@ -28,6 +28,22 @@ import {
   unitDivisibility,
 } from "./units.js";
 
+const AFTER_A_FULL_STOP = /(?<=\.)\s+/;
+
+const CLOVE = /\bcloves?\b/i;
+const CONSONANT_THEN_Y = /[^aeiou]y$/i;
+const DASH_ONLY = /^[-–—]$/;
+const DOUBLE_S_ENDING = /ss$/i;
+const F_ENDING = /(?:[^f]f|fe)$/i;
+const F_OR_FE_ENDING = /fe?$/i;
+const GARLIC = /\bgarlic\b/i;
+const IES_ENDING = /ies$/i;
+const LETTERS_ONLY = /^[A-Za-z]+$/;
+const OF_JOINER = / of /i;
+const SIBILANT_ENDING = /(?:ch|sh|s|x|z)$/i;
+const SIBILANT_PLURAL = /(?:ch|sh|s|x|z)es$/i;
+const TRAILING_S_ANY_CASE = /s$/i;
+
 export type ScalingKind =
   /** The arithmetic was exact. */
   | "scaled"
@@ -475,11 +491,11 @@ const HALVED_CUT = /\b(breasts?|thighs?|drumsticks?|wings?|cutlets?|escalopes?)\
  * Null when the line counts no clove at all.
  */
 function cloveDivisibility(unit: UnitInfo | null, item: string): Divisibility | null {
-  const counted = unit ? unit.canonical === "clove" : /\bcloves?\b/i.test(item);
+  const counted = unit ? unit.canonical === "clove" : CLOVE.test(item);
   if (!counted) {
     return null;
   }
-  return /\bgarlic\b/i.test(item) ? "half" : "whole";
+  return GARLIC.test(item) ? "half" : "whole";
 }
 
 function divisibilityOf(unit: UnitInfo | null, item: string): Divisibility {
@@ -529,7 +545,7 @@ export function agreeWithAmount(item: string, amount: number): string {
   const head = comma < 0 ? item : item.slice(0, comma);
   const tail = comma < 0 ? "" : item.slice(comma);
 
-  const preposition = / of /i.exec(head);
+  const preposition = OF_JOINER.exec(head);
   if (preposition) {
     const counted = agreeWithAmount(head.slice(0, preposition.index), amount);
     return `${counted}${head.slice(preposition.index)}${tail}`;
@@ -537,7 +553,7 @@ export function agreeWithAmount(item: string, amount: number): string {
 
   const words = head.trimEnd().split(" ");
   const last = words.at(-1) ?? "";
-  if (!/^[A-Za-z]+$/.test(last) || last.length <= 2) {
+  if (!LETTERS_ONLY.test(last) || last.length <= 2) {
     return item;
   }
 
@@ -668,14 +684,14 @@ function toPlural(word: string): string {
   if (irregular) {
     return matchCase(word, irregular);
   }
-  if (/(?:ch|sh|s|x|z)$/i.test(word)) {
+  if (SIBILANT_ENDING.test(word)) {
     return `${word}es`;
   }
-  if (/[^aeiou]y$/i.test(word)) {
+  if (CONSONANT_THEN_Y.test(word)) {
     return `${word.slice(0, -1)}ies`;
   }
-  if (/(?:[^f]f|fe)$/i.test(word)) {
-    return `${word.replace(/fe?$/i, "")}ves`;
+  if (F_ENDING.test(word)) {
+    return `${word.replace(F_OR_FE_ENDING, "")}ves`;
   }
   return `${word}s`;
 }
@@ -689,22 +705,22 @@ function toSingular(word: string): string {
   if (irregular) {
     return matchCase(word, irregular);
   }
-  if (/ies$/i.test(word) && word.length > 4) {
+  if (IES_ENDING.test(word) && word.length > 4) {
     return `${word.slice(0, -3)}y`;
   }
   // A -ves plural belongs to a noun ending in -f or -fe, and those are named
   // one by one in `IRREGULAR_PLURAL`: turning every -ves back into -f makes a
   // "clof" out of "cloves" and an "olif" out of "olives".
-  if (/(?:ch|sh|s|x|z)es$/i.test(word)) {
+  if (SIBILANT_PLURAL.test(word)) {
     return word.slice(0, -2);
   }
   // "glass", "molasses": the -s belongs to the singular. Beyond the doubled -s
   // the ending settles nothing, "couscous" and "kiwis" both closing on -us, so
   // the names that carry their -s are named in `INVARIABLE_ITEM`.
-  if (/ss$/i.test(word)) {
+  if (DOUBLE_S_ENDING.test(word)) {
     return word;
   }
-  if (/s$/i.test(word)) {
+  if (TRAILING_S_ANY_CASE.test(word)) {
     return word.slice(0, -1);
   }
   return word;
@@ -855,7 +871,7 @@ function joinNotes(...notes: Array<string | undefined>): string {
     if (note === undefined) {
       continue;
     }
-    for (const sentence of note.split(/(?<=\.)\s+/)) {
+    for (const sentence of note.split(AFTER_A_FULL_STOP)) {
       const trimmed = sentence.trim();
       if (trimmed !== "" && !seen.includes(trimmed)) {
         seen.push(trimmed);
@@ -1258,7 +1274,7 @@ function renderRange(low: string, high: string | null, separator: string | null)
   if (high === null || separator === null) {
     return low;
   }
-  return /^[-–—]$/.test(separator) ? `${low}${separator}${high}` : `${low} ${separator} ${high}`;
+  return DASH_ONLY.test(separator) ? `${low}${separator}${high}` : `${low} ${separator} ${high}`;
 }
 
 export function scaleIngredients(lines: string[], options: ScaleOptions): ScaledIngredient[] {

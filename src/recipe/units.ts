@@ -8,6 +8,10 @@
  * carries the quantity, and the size of one pinch is the hand's business.
  */
 
+const ENGLISH_HOUSEHOLD_MEASURE = /^(cup|tablespoon|Tbsp|teaspoon|tsp)$/;
+
+const FUL_MEASURE = /^[a-z]{3,}fuls?$/;
+
 export type UnitKind =
   /** Mass or volume: scales continuously and cleanly. */
   | "measured"
@@ -305,7 +309,7 @@ export function readContainerLoad(word: string): UnitInfo | null {
   const key = normalizeUnitKey(word);
   // At least three letters name the container, which keeps "awful" out of the
   // kitchen.
-  if (!/^[a-z]{3,}fuls?$/.test(key)) {
+  if (!FUL_MEASURE.test(key)) {
     return null;
   }
 
@@ -381,7 +385,7 @@ export function demoteUnit(unit: UnitInfo): { unit: UnitInfo; per: number } | nu
  * is what lets a share of one be restated in a smaller spoon.
  */
 export function isSpoonMeasure(unit: UnitInfo): boolean {
-  return /^(cup|tablespoon|Tbsp|teaspoon|tsp)$/.test(unit.canonical);
+  return ENGLISH_HOUSEHOLD_MEASURE.test(unit.canonical);
 }
 
 /** How finely a kitchen can divide one of a counted thing. */

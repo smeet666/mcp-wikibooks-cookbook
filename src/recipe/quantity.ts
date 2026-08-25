@@ -10,6 +10,23 @@
 import type { UnitInfo } from "./units.js";
 import { lookupUnit, normalizeUnitKey, readContainerLoad, UNIT_KEYS } from "./units.js";
 
+const HYPHENATED_LETTER = /^-[A-Za-z]/;
+const LEADING_ENGLISH_WORD = /^\s*([A-Za-z]+)\s+/;
+
+const ENGLISH_RANGE_JOINER = /^\s+(to|or)\s+/i;
+const FRACTION_WORD =
+  /^(?:(a|an|one|two|three)[\s-]+)?(halves|half|thirds|third|quarters|quarter|fourths|fourth)\b/i;
+const GROUPED_DECIMAL = /^(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)/;
+const LEADING_ARTICLE = /^(?:of\s+)?an?\s+/i;
+const LEADING_DASH = /^\s*(–|—|-)\s*/;
+const LEADING_INDEFINITE = /^an?\s/i;
+const LEADING_INDEFINITE_WITH_SPACE = /^an?\s+/i;
+const LEADING_OF = /^\s*of\s+/i;
+const MIXED_FRACTION = /^(\d+)\s+(\d+)\s*\/\s*(\d+)/;
+const OF_OPENING = /^of\s+/i;
+const SIMPLE_FRACTION = /^(\d+)\s*\/\s*(\d+)/;
+const WHITESPACE = /\s+/;
+
 /**
  * How a line writes the equivalents beside its measure, when it writes any.
  *
@@ -160,7 +177,7 @@ export function parseLeadingQuantity(text: string): ParsedQuantity | null {
     }
   }
 
-  const mixed = /^(\d+)\s+(\d+)\s*\/\s*(\d+)/.exec(trimmed);
+  const mixed = MIXED_FRACTION.exec(trimmed);
   if (mixed) {
     const denominator = Number(mixed[3]);
     if (denominator !== 0) {
@@ -171,7 +188,7 @@ export function parseLeadingQuantity(text: string): ParsedQuantity | null {
     }
   }
 
-  const fraction = /^(\d+)\s*\/\s*(\d+)/.exec(trimmed);
+  const fraction = SIMPLE_FRACTION.exec(trimmed);
   if (fraction) {
     const denominator = Number(fraction[2]);
     // A denominator of zero is not a quantity. Reading the numerator alone
@@ -192,7 +209,7 @@ export function parseLeadingQuantity(text: string): ParsedQuantity | null {
   // "1,500 g" is fifteen hundred grams. Reading the digits up to the comma and
   // stopping there answers 1 for a line that said 1500, and leaves ",500 g"
   // behind in the item name.
-  const decimal = /^(\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?)/.exec(trimmed);
+  const decimal = GROUPED_DECIMAL.exec(trimmed);
   if (decimal) {
     const [digits = ""] = decimal.slice(1);
     const amount = Number(digits.replace(/,/g, ""));
@@ -239,10 +256,7 @@ const WRITTEN_DENOMINATORS: Record<string, number> = {
  * to another line.
  */
 function parseWrittenFraction(text: string): ParsedQuantity | null {
-  const match =
-    /^(?:(a|an|one|two|three)[\s-]+)?(halves|half|thirds|third|quarters|quarter|fourths|fourth)\b/i.exec(
-      text,
-    );
+  const match = FRACTION_WORD.exec(text);
   if (!match) {
     return null;
   }
@@ -253,11 +267,8 @@ function parseWrittenFraction(text: string): ParsedQuantity | null {
     return null;
   }
 
-  const rest = text
-    .slice(match[0].length)
-    .replace(/^\s*of\s+/i, "")
-    .trimStart();
-  if (!(/^an?\s/i.test(rest) || takeUnit(rest).unit)) {
+  const rest = text.slice(match[0].length).replace(LEADING_OF, "").trimStart();
+  if (!(LEADING_INDEFINITE.test(rest) || takeUnit(rest).unit)) {
     return null;
   }
 
@@ -292,7 +303,7 @@ export function parseLeadingRange(text: string): ParsedRange | null {
   const after = text.slice(low.length);
   // A written separator needs whitespace around it, so "5 tomatoes" is not read
   // as "5 to" followed by an unreadable second bound.
-  const separator = /^\s+(to|or)\s+/i.exec(after) ?? /^\s*(–|—|-)\s*/.exec(after);
+  const separator = ENGLISH_RANGE_JOINER.exec(after) ?? LEADING_DASH.exec(after);
   if (!separator) {
     return null;
   }
@@ -438,16 +449,13 @@ export function parseIngredient(line: string): ParsedIngredient {
 
   // A figure joined to a word by a hyphen describes one thing rather than
   // counting things: "4 to 5-pound roast" is one roast that weighs that much.
-  if (/^-[A-Za-z]/.test(stated.slice(quantity.length))) {
+  if (HYPHENATED_LETTER.test(stated.slice(quantity.length))) {
     return empty("sizeQualifier");
   }
 
   // "two thirds of a cup" names a share of one cup, and the unit stands behind
   // the preposition and the article that introduce it.
-  let rest = stated
-    .slice(quantity.length)
-    .trimStart()
-    .replace(/^(?:of\s+)?an?\s+/i, "");
+  let rest = stated.slice(quantity.length).trimStart().replace(LEADING_ARTICLE, "");
 
   // "2 dozen mushrooms" counts mushrooms, twelve to the dozen, so the multiplier
   // is folded into the amount and the line goes on to be read as the count of a
@@ -493,10 +501,7 @@ export function parseIngredient(line: string): ParsedIngredient {
     // and once the share has been multiplied the count sits where "a" stood.
     // Leaving the article behind produces "4 a bottle", which reads as broken
     // text rather than as a quantity.
-    item: rest
-      .replace(/^of\s+/i, "")
-      .replace(/^an?\s+/i, "")
-      .trim(),
+    item: rest.replace(OF_OPENING, "").replace(LEADING_INDEFINITE_WITH_SPACE, "").trim(),
     articleWord: article?.word ?? null,
     countMultiplier: multiplier?.times ?? null,
   };
@@ -546,7 +551,7 @@ const MEASURE_ADJECTIVES = new Set([
 
 /** The adjective a line put in front of its measure, and what stands after it. */
 function takeMeasureAdjective(text: string): { adjective: string | null; rest: string } {
-  const match = /^\s*([A-Za-z]+)\s+/.exec(text);
+  const match = LEADING_ENGLISH_WORD.exec(text);
   const [adjective = ""] = match?.slice(1) ?? [];
   if (!(match && MEASURE_ADJECTIVES.has(adjective.toLowerCase()))) {
     return { adjective: null, rest: text };
@@ -564,7 +569,7 @@ function takeMeasureAdjective(text: string): { adjective: string | null; rest: s
  * number the line never wrote.
  */
 function articleAsOne(text: string): ParsedArticle | null {
-  const article = /^an?\s+/i.exec(text);
+  const article = LEADING_INDEFINITE_WITH_SPACE.exec(text);
   if (!article) {
     return null;
   }
@@ -595,7 +600,7 @@ const COUNT_MULTIPLIERS: Record<string, number> = {
 
 /** The multiplier a line opens with, and what stands after it. */
 function readCountMultiplier(text: string): { times: number; rest: string } | null {
-  const match = /^\s*([A-Za-z]+)\s+/.exec(text);
+  const match = LEADING_ENGLISH_WORD.exec(text);
   if (!match) {
     return null;
   }
@@ -622,11 +627,11 @@ function takeUnit(text: string): { unit: UnitInfo | null; rest: string } {
       continue;
     }
     const wordCount = key.split(" ").length;
-    const words = text.split(/\s+/);
+    const words = text.split(WHITESPACE);
     return { unit: lookupUnit(key), rest: words.slice(wordCount).join(" ") };
   }
 
-  const words = text.trimStart().split(/\s+/);
+  const words = text.trimStart().split(WHITESPACE);
   const load = words[0] ? readContainerLoad(words[0]) : null;
   if (load) {
     return { unit: load, rest: words.slice(1).join(" ") };
