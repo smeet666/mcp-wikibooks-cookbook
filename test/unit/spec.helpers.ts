@@ -39,13 +39,13 @@ const MASS: Record<string, number> = {
   kg: 1000,
   kilogram: 1000,
   kilograms: 1000,
-  oz: 28.349523125,
-  ounce: 28.349523125,
-  ounces: 28.349523125,
-  lb: 453.59237,
-  lbs: 453.59237,
-  pound: 453.59237,
-  pounds: 453.59237,
+  oz: 28.349_523_125,
+  ounce: 28.349_523_125,
+  ounces: 28.349_523_125,
+  lb: 453.592_37,
+  lbs: 453.592_37,
+  pound: 453.592_37,
+  pounds: 453.592_37,
 };
 
 const VOLUME: Record<string, number> = {
@@ -61,14 +61,14 @@ const VOLUME: Record<string, number> = {
   liters: 1000,
   litre: 1000,
   litres: 1000,
-  tsp: 4.92892159375,
-  teaspoon: 4.92892159375,
-  teaspoons: 4.92892159375,
-  tbsp: 14.78676478125,
-  tablespoon: 14.78676478125,
-  tablespoons: 14.78676478125,
-  cup: 236.5882365,
-  cups: 236.5882365,
+  tsp: 4.928_921_593_75,
+  teaspoon: 4.928_921_593_75,
+  teaspoons: 4.928_921_593_75,
+  tbsp: 14.786_764_781_25,
+  tablespoon: 14.786_764_781_25,
+  tablespoons: 14.786_764_781_25,
+  cup: 236.588_236_5,
+  cups: 236.588_236_5,
 };
 
 export type Dimension = "mass" | "volume" | "count";

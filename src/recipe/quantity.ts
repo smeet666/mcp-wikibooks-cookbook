@@ -249,7 +249,7 @@ function parseWrittenFraction(text: string): ParsedQuantity | null {
 
   const numerator = match[1] ? WRITTEN_NUMERATORS[match[1].toLowerCase()] : 1;
   const denominator = WRITTEN_DENOMINATORS[(match[2] ?? "").toLowerCase()];
-  if (!numerator || !denominator) {
+  if (!(numerator && denominator)) {
     return null;
   }
 
@@ -257,7 +257,7 @@ function parseWrittenFraction(text: string): ParsedQuantity | null {
     .slice(match[0].length)
     .replace(/^\s*of\s+/i, "")
     .trimStart();
-  if (!/^an?\s/i.test(rest) && !takeUnit(rest).unit) {
+  if (!(/^an?\s/i.test(rest) || takeUnit(rest).unit)) {
     return null;
   }
 
@@ -548,7 +548,7 @@ const MEASURE_ADJECTIVES = new Set([
 function takeMeasureAdjective(text: string): { adjective: string | null; rest: string } {
   const match = /^\s*([A-Za-z]+)\s+/.exec(text);
   const [adjective = ""] = match?.slice(1) ?? [];
-  if (!match || !MEASURE_ADJECTIVES.has(adjective.toLowerCase())) {
+  if (!(match && MEASURE_ADJECTIVES.has(adjective.toLowerCase()))) {
     return { adjective: null, rest: text };
   }
   return { adjective, rest: text.slice(match[0].length) };

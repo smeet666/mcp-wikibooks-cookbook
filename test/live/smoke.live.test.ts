@@ -8,6 +8,7 @@
  *   WB_LIVE=1 npm run test:live
  */
 
+import process from "node:process";
 import { describe, expect, it } from "vitest";
 import { CookbookClient } from "../../src/wikibooks/client.js";
 

@@ -122,10 +122,10 @@ const noodles = [
 ].join("\n");
 
 write("page-recipe.json", {
-  id: 22971,
+  id: 22_971,
   key: "Cookbook:Salt_Flat_Noodles",
   title: "Cookbook:Salt Flat Noodles",
-  latest: { id: 4640105, timestamp: "2026-06-13T15:19:00Z" },
+  latest: { id: 4_640_105, timestamp: "2026-06-13T15:19:00Z" },
   content_model: "wikitext",
   license: LICENCE,
   source: noodles,
@@ -134,7 +134,7 @@ write("page-recipe.json", {
 
 /** A recipe counted in objects rather than servings, with a nutrition panel. */
 write("page-yield-in-objects.json", {
-  id: 97975,
+  id: 97_975,
   key: "Cookbook:Orchard_Balls",
   title: "Cookbook:Orchard Balls",
   latest: { id: 12, timestamp: "2025-02-01T08:00:00Z" },
@@ -192,7 +192,7 @@ write("page-yield-range.json", {
  * first one comes back with two ingredients out of seven.
  */
 write("page-grouped-ingredients.json", {
-  id: 51201,
+  id: 51_201,
   key: "Cookbook:Orchard_Layer_Cake",
   title: "Cookbook:Orchard Layer Cake",
   latest: { id: 88, timestamp: "2025-09-09T09:09:00Z" },
@@ -248,7 +248,7 @@ write("page-grouped-ingredients.json", {
  * into the list would offer "boil the leaves" as something to buy.
  */
 write("page-nested-procedure.json", {
-  id: 33440,
+  id: 33_440,
   key: "Cookbook:Wrapped_Rice_Cake",
   title: "Cookbook:Wrapped Rice Cake",
   latest: { id: 7, timestamp: "2025-03-03T03:03:00Z" },
@@ -281,7 +281,7 @@ write("page-nested-procedure.json", {
  * template's arguments rather than in the running text.
  */
 write("page-measure-templates.json", {
-  id: 60112,
+  id: 60_112,
   key: "Cookbook:Lamp_Oil_Buns",
   title: "Cookbook:Lamp Oil Buns",
   latest: { id: 41, timestamp: "2026-01-20T10:00:00Z" },
@@ -315,7 +315,7 @@ write("page-measure-templates.json", {
  * bowl.
  */
 write("page-alternative-lists.json", {
-  id: 60113,
+  id: 60_113,
   key: "Cookbook:Lamp_Fish_Salad",
   title: "Cookbook:Lamp Fish Salad",
   latest: { id: 42, timestamp: "2026-02-02T12:00:00Z" },
@@ -355,7 +355,7 @@ write("page-alternative-lists.json", {
  * by a line break, each with the name of the phase it covers.
  */
 write("page-phased-time.json", {
-  id: 60114,
+  id: 60_114,
   key: "Cookbook:Lamp_Oil_Flatbread",
   title: "Cookbook:Lamp Oil Flatbread",
   latest: { id: 43, timestamp: "2026-03-03T13:00:00Z" },
@@ -388,7 +388,7 @@ write("page-phased-time.json", {
  * two durations describe different things and neither stands for the dish.
  */
 write("page-fermented-time.json", {
-  id: 60115,
+  id: 60_115,
   key: "Cookbook:Sour_Lamp_Bread",
   title: "Cookbook:Sour Lamp Bread",
   latest: { id: 44, timestamp: "2026-03-04T14:00:00Z" },
