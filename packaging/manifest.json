@@ -39,19 +39,135 @@
   "tools": [
     {
       "name": "search_recipes",
-      "description": "Find a Cookbook page by dish name or by an ingredient it uses."
+      "description": "Find a Cookbook page by dish name or by an ingredient it uses.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "A dish, such as 'carbonara', or an ingredient, such as 'guanciale'."
+          },
+          "search": {
+            "default": "text",
+            "description": "'text' reads the whole page; 'title' matches the page name only.",
+            "type": "string",
+            "enum": ["text", "title"]
+          },
+          "limit": {
+            "default": 10,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "get_recipe",
-      "description": "Read one page: ingredients, equipment, steps and yield, optionally rescaled."
+      "description": "Read one page: ingredients, equipment, steps and yield, optionally rescaled.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Page key from a search, such as 'Cookbook:Spaghetti_alla_Carbonara'."
+          },
+          "servings": {
+            "description": "Rescale the ingredients to this many servings.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "max_description_chars": {
+            "default": 1200,
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 20000
+          }
+        },
+        "required": ["id"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "scale_ingredients",
-      "description": "Rescale any English ingredient list, without contacting a website."
+      "description": "Rescale any English ingredient list, without contacting a website.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ingredients": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "description": "Ingredient lines, for example ['450 g (1 pound) spaghetti', '5 egg yolks', 'Salt']."
+          },
+          "factor": {
+            "description": "Multiplier to apply. Use this or the from/to pair.",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 100
+          },
+          "from_servings": {
+            "description": "How many servings the list is written for.",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 500
+          },
+          "to_servings": {
+            "description": "How many servings are wanted.",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 500
+          }
+        },
+        "required": ["ingredients"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     },
     {
       "name": "list_recipes",
-      "description": "Browse by cuisine, kind of dish or main ingredient."
+      "description": "Browse by cuisine, kind of dish or main ingredient.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cuisine": {
+            "description": "A cuisine or a country, such as 'Italian' or 'Thai'.",
+            "type": "string",
+            "maxLength": 80
+          },
+          "dish_type": {
+            "description": "A kind of dish, such as 'soup', 'dessert' or 'bread'.",
+            "type": "string",
+            "maxLength": 80
+          },
+          "main_ingredient": {
+            "description": "The ingredient a recipe is built on, such as 'chicken' or 'lentils'.",
+            "type": "string",
+            "maxLength": 80
+          },
+          "limit": {
+            "default": 15,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      }
     }
   ],
   "compatibility": {
