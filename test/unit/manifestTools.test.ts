@@ -53,10 +53,10 @@ describe("what a host is told before the server runs", () => {
     // field added here stops the release rather than the pull request. The
     // argument schema a directory wants is added to a copy at deposit time.
     for (const tool of manifest.tools) {
-      expect(Object.keys(tool).sort(alphabetically), `${tool.name} carries more than a line`).toEqual([
-        "description",
-        "name",
-      ]);
+      expect(
+        Object.keys(tool).sort(alphabetically),
+        `${tool.name} carries more than a line`,
+      ).toEqual(["description", "name"]);
     }
   });
 
