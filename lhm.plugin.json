@@ -1,0 +1,1141 @@
+{
+  "author": "Damien Bouissou",
+  "authorUrl": "https://github.com/smeet666",
+  "description": "MCP server for the Wikibooks Cookbook. Search recipes, read ingredients and steps, and rescale quantities without ending up with 2.4 eggs. No API key required.",
+  "homepage": "https://github.com/smeet666/mcp-wikibooks-cookbook#readme",
+  "identifier": "smeet666-mcp-wikibooks-cookbook",
+  "name": "mcp-wikibooks-cookbook",
+  "prompts": [],
+  "resources": [],
+  "tags": [
+    "mcp",
+    "model-context-protocol",
+    "wikibooks",
+    "cookbook",
+    "recipes",
+    "cooking",
+    "wikimedia",
+    "ingredient-scaling"
+  ],
+  "tools": [
+    {
+      "name": "search_recipes",
+      "title": "Search the Cookbook",
+      "description": "Search the Wikibooks Cookbook for a recipe, by dish name or by an ingredient it uses. 'text' searches the whole of each page, which is what finds a dish from an ingredient inside it; 'title' matches the page name only, which is exact and misses a dish the Cookbook names differently. The Cookbook also holds reference pages on ingredients, techniques and cuisines, and those rank alongside recipes: a row is a page, and only get_recipe can say whether it carries an ingredient list. A full-text row can be a page that merely names the dish: when the titles do not say the words searched for, the notes say so, because the Cookbook links to dishes it does not hold. On a title search the same rows are pages the Cookbook files under another name, such as 'Eggplant' for 'aubergine', since that search opens no page. 'total_available' is null because the search route reports no total and offers no second page. Narrow the query rather than asking for more. Every row carries an 'id', which get_recipe takes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "A dish, such as 'carbonara', or an ingredient, such as 'guanciale'."
+          },
+          "search": {
+            "default": "text",
+            "description": "'text' reads the whole page; 'title' matches the page name only.",
+            "type": "string",
+            "enum": ["text", "title"]
+          },
+          "limit": {
+            "default": 10,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "required": ["query"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Page key. Pass this to get_recipe."
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Public page. Show this when citing the recipe."
+                },
+                "image_url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Thumbnail the search offered, when it offered one."
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The short gloss the wiki keeps for the page."
+                },
+                "excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The matching passage, with highlight markup removed."
+                }
+              },
+              "required": ["id", "title", "url", "image_url", "description", "excerpt"],
+              "additionalProperties": false
+            }
+          },
+          "result_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Rows returned by this call."
+          },
+          "total_available": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null: the search route publishes no total and no paging."
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": ["query", "results", "result_count", "total_available", "source", "notes"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "get_recipe",
+      "title": "Read a recipe",
+      "description": "Read one Wikibooks Cookbook page: ingredients, equipment, steps, yield, time, difficulty, category, and the nutrition panel when the page carries one. 'id' is the page key from search_recipes or list_recipes, such as 'Cookbook:Spaghetti_alla_Carbonara'. A plain dish name is accepted and the Cookbook namespace is added. Pass 'servings' to rescale: a countable thing lands on the smallest share a cook can take out of one of it, which is a whole one where half of one cannot be measured out at all, such as an egg or a whole clove, a half where half of one pours, weighs or splits, such as a can or a packet, and a quarter where a knife or the size of the thing goes further, such as an onion, a slice of bread or a jar; a measurement is moved to a smaller unit before rounding so nothing disappears; and anything that cannot be multiplied is flagged instead. Read 'scaling' on each ingredient rather than doing the arithmetic yourself. A page that groups its ingredients by what they are for, such as a cake and its glaze, states that group on every line; a page that lists them flat states null. Two lines can read alike and belong to different parts of the dish. A page offering several versions of the dish states which one each line came from in 'variant'. Those lists replace one another: one of them is used, even where the procedure says to mix all the ingredients. A measurement the page writes as a conversion template is read as the value and the unit the page wrote, and the counterpart the template computes is left out: nothing here is converted between measuring systems. A line asking for as much as is needed and giving an indication in brackets, such as 'water as required (about 1 ½ cups)', states a quantity: the indication is scaled with the recipe and the wording in front of it is left as the page wrote it. A line offering an alternative in brackets, such as '4 eggs (or 8 egg yolks)', has both branches scaled, since a cook takes one of them. The Cookbook keeps recipes and the book's own chapter indexes in one namespace, and both write 'Ingredients' over a bulleted list. A page carrying no recipe box, no recipe banner and no procedure comes back with empty lists and a note: its bullets are links to other pages rather than things to buy. A heading owns what is nested under it and stops at the next heading of its own level, so a page carrying two recipes returns the first of each part and names the rest in a note. A page that only redirects elsewhere is followed to the page it points at, and 'id' and 'redirected_from' say which page was read. Rescaling needs a yield to scale from. A page that states none comes back as published, and says so. A page yielding no quantities is answered with 'factor' 1 and a note: an empty ingredient list was multiplied by nothing. 'author' and 'rating' are always null: the Cookbook is written collectively and carries no reader score. A time the page does not state is null, never zero, and never inferred from the steps. A page stating phases rather than a total, such as a fermentation and a cooking, publishes them in 'time_phases' with 'total_minutes' null: the phases measure different things and are never added. Pages are published under a licence that requires attribution; 'license' and 'url' carry what to credit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300,
+            "description": "Page key from a search, such as 'Cookbook:Spaghetti_alla_Carbonara'."
+          },
+          "servings": {
+            "description": "Rescale the ingredients to this many servings.",
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 500
+          },
+          "max_description_chars": {
+            "default": 1200,
+            "type": "integer",
+            "minimum": 100,
+            "maximum": 20000
+          }
+        },
+        "required": ["id"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "The page that was read, which differs from 'id' after a redirect."
+          },
+          "title": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          },
+          "redirected_from": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Redirect pages walked to reach this one. Empty when the page was reached directly."
+          },
+          "yield": {
+            "type": "object",
+            "properties": {
+              "original_count": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The published yield as a number, when it is one."
+              },
+              "original_text": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "The yield in the page's own wording."
+              },
+              "requested": {
+                "anyOf": [
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "What the caller asked for, null when nothing was."
+              },
+              "unit": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "What the yield counts when it is not servings, such as 'balls'."
+              },
+              "factor": {
+                "type": "number",
+                "description": "What the quantities were multiplied by. 1 when nothing was scaled."
+              }
+            },
+            "required": ["original_count", "original_text", "requested", "unit", "factor"],
+            "additionalProperties": false
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "The line as it now reads, identical to 'original' when unscaled."
+                },
+                "original": {
+                  "type": "string",
+                  "description": "The line as the page publishes it."
+                },
+                "scaling": {
+                  "type": "string",
+                  "enum": ["scaled", "rounded", "unscaled"],
+                  "description": "'scaled' means the arithmetic was exact. 'rounded' means a countable item was moved to a whole, a half or a quarter, whichever is the smallest share a cook takes out of one of it, or a measurement was demoted to a smaller unit to stay usable. 'unscaled' means the line carries nothing that can be multiplied and was left alone."
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The quantity, expressed in 'unit', and the lower bound when the line gives a range. Read the two together: a large result is moved to a bigger unit, so 200 g scaled tenfold reads as 2 kg, and the bare number shrinks while the quantity grows."
+                },
+                "amount_max": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Upper bound when the line gives a range."
+                },
+                "unit": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The unit 'amount' is in, which may differ from the page's."
+                },
+                "note": {
+                  "description": "Why the line was rounded, clamped or left alone.",
+                  "type": "string"
+                },
+                "group": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The part of the dish this line is for, such as 'Glaze'. Null when the page names none. Every part is made, so a caller buys all of them."
+                },
+                "variant": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The alternative list this line belongs to, such as 'Variation II'. Null when the line belongs to the recipe itself. Lines carrying different variants replace one another: exactly one of them is used, whatever the procedure says about mixing everything."
+                }
+              },
+              "required": [
+                "text",
+                "original",
+                "scaling",
+                "amount",
+                "amount_max",
+                "unit",
+                "group",
+                "variant"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Notes, tips and variations the page publishes."
+          },
+          "prep_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The phase the page labels as preparation. Null when it labels none."
+          },
+          "cook_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The phase the page labels as cooking. Null when it labels none."
+          },
+          "total_minutes": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The whole dish, stated only where the page states a total: one duration, or a phase the page itself calls the total. Null where the page states phases and no total, since a fermentation, a marinade or a rest is not cooking time and adding them would answer with a figure nobody published. Read 'time_phases' instead."
+          },
+          "time_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The time in the page's own wording."
+          },
+          "time_phases": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "label": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The phase as the page names it, such as 'Fermentation'. Null when it names none."
+                },
+                "text": {
+                  "type": "string",
+                  "description": "The duration in the page's own wording."
+                },
+                "minutes": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The duration in minutes, or the lower bound of a range."
+                },
+                "minutes_max": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The upper bound where the page gives a range, null where it gives one figure."
+                }
+              },
+              "required": ["label", "text", "minutes", "minutes_max"],
+              "additionalProperties": false
+            },
+            "description": "Each duration the page states, in the order it states them."
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Every category the page files itself under."
+          },
+          "difficulty": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "difficulty_max": {
+            "type": "number",
+            "description": "The scale 'difficulty' sits on."
+          },
+          "energy": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Energy per serving as the page states it."
+          },
+          "author": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null: the Cookbook is written collectively."
+          },
+          "rating": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null: the Cookbook carries no reader score."
+          },
+          "nutrition": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "serving_size": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "servings": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "calories": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "calories_from_fat": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "total_fat": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "saturated_fat": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "cholesterol": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sodium": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "carbohydrates": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "fiber": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "sugars": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "protein": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vitamin_a": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "vitamin_c": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "calcium": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "iron": {
+                    "anyOf": [
+                      {
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  }
+                },
+                "required": [
+                  "serving_size",
+                  "servings",
+                  "calories",
+                  "calories_from_fat",
+                  "total_fat",
+                  "saturated_fat",
+                  "cholesterol",
+                  "sodium",
+                  "carbohydrates",
+                  "fiber",
+                  "sugars",
+                  "protein",
+                  "vitamin_a",
+                  "vitamin_c",
+                  "calcium",
+                  "iron"
+                ],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "license": {
+            "anyOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "url": {
+                    "type": "string"
+                  }
+                },
+                "required": ["title", "url"],
+                "additionalProperties": false
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "revised_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "url",
+          "redirected_from",
+          "yield",
+          "ingredients",
+          "equipment",
+          "steps",
+          "tips",
+          "prep_minutes",
+          "cook_minutes",
+          "total_minutes",
+          "time_text",
+          "time_phases",
+          "category",
+          "categories",
+          "difficulty",
+          "difficulty_max",
+          "energy",
+          "author",
+          "rating",
+          "nutrition",
+          "description",
+          "attribution",
+          "license",
+          "revised_at",
+          "source",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "scale_ingredients",
+      "title": "Rescale an ingredient list",
+      "description": "Rescale a list of English ingredient lines. This contacts no website and works on a list from anywhere, including one the user pasted in. Give either 'factor' directly, or 'from_servings' and 'to_servings' and the factor is computed. Grams, millilitres, ounces and pounds are multiplied and rounded to what a scale can show; a quantity that would fall below one is moved to a smaller unit first, so it never rounds away to nothing. Countable things land where a kitchen can follow, and what decides is the content rather than the container: a can, a packet, a sheet of gelatine or a spoon lands on a half, because half of one pours, weighs or cuts. An egg, a yolk, a white, a zest or a whole clove lands on a whole one, since there is no half of it to measure out, which is what stops an answer like '2.4 eggs'. A bottle, a jar, a block and a slice go one step further, to the quarter, as a whole food a knife shares out does. An approximate measure is scaled as a count, so a pinch taken from 6 servings to 25 is 4 pinches; the note gives the everyday equivalence, and the quantity stays in the unit the line used. That covers the gestures, such as a pinch, a dash, a glug or a handful, and anything named after what holds it, such as a capful or a spoonful. A line with no quantity at all comes back untouched and flagged. A bracketed equivalent, as in '450 g (1 pound)', is scaled with the amount it restates rather than left to contradict it, and so is one written after a slash, as in '500 g / 1.1 lb'. A line offering a choice, as in '2 tablespoons butter OR 30 g margarine', has both branches scaled, so whichever one the cook takes carries the same share. Prefer this over doing the arithmetic yourself.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "ingredients": {
+            "minItems": 1,
+            "maxItems": 100,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxLength": 300
+            },
+            "description": "Ingredient lines, for example ['450 g (1 pound) spaghetti', '5 egg yolks', 'Salt']."
+          },
+          "factor": {
+            "description": "Multiplier to apply. Use this or the from/to pair.",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 100
+          },
+          "from_servings": {
+            "description": "How many servings the list is written for.",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 500
+          },
+          "to_servings": {
+            "description": "How many servings are wanted.",
+            "type": "number",
+            "exclusiveMinimum": 0,
+            "maximum": 500
+          }
+        },
+        "required": ["ingredients"],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "factor": {
+            "type": "number"
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "text": {
+                  "type": "string",
+                  "description": "The line as it now reads, identical to 'original' when unscaled."
+                },
+                "original": {
+                  "type": "string",
+                  "description": "The line as the page publishes it."
+                },
+                "scaling": {
+                  "type": "string",
+                  "enum": ["scaled", "rounded", "unscaled"],
+                  "description": "'scaled' means the arithmetic was exact. 'rounded' means a countable item was moved to a whole, a half or a quarter, whichever is the smallest share a cook takes out of one of it, or a measurement was demoted to a smaller unit to stay usable. 'unscaled' means the line carries nothing that can be multiplied and was left alone."
+                },
+                "amount": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The quantity, expressed in 'unit', and the lower bound when the line gives a range. Read the two together: a large result is moved to a bigger unit, so 200 g scaled tenfold reads as 2 kg, and the bare number shrinks while the quantity grows."
+                },
+                "amount_max": {
+                  "anyOf": [
+                    {
+                      "type": "number"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Upper bound when the line gives a range."
+                },
+                "unit": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The unit 'amount' is in, which may differ from the page's."
+                },
+                "note": {
+                  "description": "Why the line was rounded, clamped or left alone.",
+                  "type": "string"
+                }
+              },
+              "required": ["text", "original", "scaling", "amount", "amount_max", "unit"],
+              "additionalProperties": false
+            }
+          },
+          "scaled_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lines whose arithmetic came out exact."
+          },
+          "rounded_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lines whose value was moved to stay usable, not lines that could have been."
+          },
+          "unscaled_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "description": "Lines carrying nothing that can be multiplied."
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "factor",
+          "ingredients",
+          "scaled_count",
+          "rounded_count",
+          "unscaled_count",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    },
+    {
+      "name": "list_recipes",
+      "title": "Browse the Cookbook",
+      "description": "Browse the Wikibooks Cookbook by cuisine, by kind of dish, or by main ingredient. Give at least one of the three; giving several narrows the result. This is built on the Cookbook's search, because the route this server is allowed to use publishes no way to list the members of a category. What comes back is therefore a ranked sample and not the category itself: it is neither complete nor ordered, and its length says nothing about how many recipes the Cookbook holds on the subject. The Cookbook also holds reference pages on ingredients and techniques, and those rank alongside recipes. Open a row with get_recipe before describing it as a recipe. Use search_recipes instead when there is a dish name to look up.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "cuisine": {
+            "description": "A cuisine or a country, such as 'Italian' or 'Thai'.",
+            "type": "string",
+            "maxLength": 80
+          },
+          "dish_type": {
+            "description": "A kind of dish, such as 'soup', 'dessert' or 'bread'.",
+            "type": "string",
+            "maxLength": 80
+          },
+          "main_ingredient": {
+            "description": "The ingredient a recipe is built on, such as 'chicken' or 'lentils'.",
+            "type": "string",
+            "maxLength": 80
+          },
+          "limit": {
+            "default": 15,
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 50
+          }
+        },
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The search this server built from the arguments."
+          },
+          "cuisine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "dish_type": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "main_ingredient": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "description": "Page key. Pass this to get_recipe."
+                },
+                "title": {
+                  "type": "string"
+                },
+                "url": {
+                  "type": "string",
+                  "description": "Public page. Show this when citing the recipe."
+                },
+                "image_url": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Thumbnail the search offered, when it offered one."
+                },
+                "description": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The short gloss the wiki keeps for the page."
+                },
+                "excerpt": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "The matching passage, with highlight markup removed."
+                }
+              },
+              "required": ["id", "title", "url", "image_url", "description", "excerpt"],
+              "additionalProperties": false
+            }
+          },
+          "result_count": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "total_available": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Always null: no route reports how many recipes a category holds."
+          },
+          "source": {
+            "type": "string"
+          },
+          "notes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "query",
+          "cuisine",
+          "dish_type",
+          "main_ingredient",
+          "results",
+          "result_count",
+          "total_available",
+          "source",
+          "notes"
+        ],
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "idempotentHint": true,
+        "openWorldHint": true
+      },
+      "execution": {
+        "taskSupport": "forbidden"
+      }
+    }
+  ],
+  "version": "2.0.1"
+}
