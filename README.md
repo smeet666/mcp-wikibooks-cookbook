@@ -64,7 +64,7 @@ Node 24 or later is required, and no environment variable has to be set.
   "mcpServers": {
     "wikibooks-cookbook": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "ghcr.io/smeet666/mcp-wikibooks-cookbook:2.0.1"]
+      "args": ["run", "-i", "--rm", "ghcr.io/smeet666/mcp-wikibooks-cookbook:2.1.0"]
     }
   }
 }
@@ -76,7 +76,7 @@ because a TTY rewrites the stream. The container needs outbound HTTPS to
 
 ### Bundle, without npm
 
-Download `mcp-wikibooks-cookbook-2.0.1.mcpb` from
+Download `mcp-wikibooks-cookbook-2.1.0.mcpb` from
 [the latest release](https://github.com/smeet666/mcp-wikibooks-cookbook/releases/latest)
 and open it. A client that supports MCP bundles installs it on its own, with no
 npm and no configuration file to edit. The bundle carries its dependencies, so
@@ -210,6 +210,7 @@ Every variable is optional. Set them in the `env` block of your client config.
 | `WB_MAX_RETRIES`       | `3`                  | Attempts after a transient failure, from 0 to 8.                                    |
 | `WB_CACHE_TTL_MS`      | `900000`             | How long a page stays in memory, from 0 to 86400000.                                |
 | `WB_CACHE_MAX_ENTRIES` | `200`                | Pages held in memory at once, from 1 to 5000.                                       |
+| `WB_MAX_BODY_BYTES`    | `8000000`            | Largest page this reads, in bytes, from 100000 to 64000000.                         |
 | `WB_LOG_LEVEL`         | `error`              | `silent`, `error`, `info` or `debug`, written to stderr.                            |
 
 A value outside its range falls back to the default, and the reason is written to
@@ -349,7 +350,7 @@ renseigner.
   "mcpServers": {
     "wikibooks-cookbook": {
       "command": "docker",
-      "args": ["run", "-i", "--rm", "ghcr.io/smeet666/mcp-wikibooks-cookbook:2.0.1"]
+      "args": ["run", "-i", "--rm", "ghcr.io/smeet666/mcp-wikibooks-cookbook:2.1.0"]
     }
   }
 }
@@ -362,7 +363,7 @@ aucun identifiant.
 
 ### Bundle, sans npm
 
-Téléchargez `mcp-wikibooks-cookbook-2.0.1.mcpb` depuis
+Téléchargez `mcp-wikibooks-cookbook-2.1.0.mcpb` depuis
 [la dernière publication](https://github.com/smeet666/mcp-wikibooks-cookbook/releases/latest)
 et ouvrez-le. Un client qui gère les bundles MCP l'installe seul, sans npm et
 sans fichier de configuration à modifier. Le bundle emporte ses dépendances, donc
@@ -499,6 +500,7 @@ configuration du client.
 | `WB_MAX_RETRIES`       | `3`                  | Tentatives après un échec passager, de 0 à 8.                                          |
 | `WB_CACHE_TTL_MS`      | `900000`             | Durée pendant laquelle une page reste en mémoire, de 0 à 86400000.                     |
 | `WB_CACHE_MAX_ENTRIES` | `200`                | Pages gardées en mémoire à la fois, de 1 à 5000.                                       |
+| `WB_MAX_BODY_BYTES`    | `8000000`            | Plus grande page lue, en octets, de 100000 à 64000000.                                 |
 | `WB_LOG_LEVEL`         | `error`              | `silent`, `error`, `info` ou `debug`, écrit sur la sortie d'erreur.                    |
 
 Une valeur hors de sa plage retombe sur le défaut, et la raison est écrite sur la
