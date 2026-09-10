@@ -299,7 +299,7 @@ export function lookupUnit(text: string): UnitInfo | null {
  * way is therefore a measure of the same family as a pinch, which is why the
  * suffix is read as a rule: a container nobody thought to list is understood
  * the first time it appears, and the table above only carries the words the
- * rule cannot reach, the gestures — a pinch, a dash, a drizzle, a glug — whose
+ * rule cannot reach, the gestures (a pinch, a dash, a drizzle, a glug) whose
  * name says nothing about their size either.
  *
  * The vocabulary is consulted first, so a word listed there keeps the kind and
