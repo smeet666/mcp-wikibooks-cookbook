@@ -249,7 +249,7 @@ describe("get_recipe, the text block", () => {
     const text = result.content[0]!.text;
     expect(text).toContain("Note: ");
     expect(
-      text.trimEnd().endsWith("https://en.wikibooks.org/wiki/Cookbook:Salt_Flat_Noodles"),
+      text.trimEnd().endsWith("(https://en.wikibooks.org/wiki/Cookbook:Salt_Flat_Noodles)"),
     ).toBe(true);
   });
 

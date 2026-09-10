@@ -1071,9 +1071,9 @@ function noteForScaledLine(outcome: LineOutcome): string | undefined {
  * The line as it reads once scaled: the amount, its measure, the equivalents
  * beside it, and the item they belong to.
  *
- * The size word the page put in front of its measure goes back in front of it —
- * the page asked for a small handful, and a handful is not the same ask — and
- * the equivalents go back the way the line offered them, in brackets or after a
+ * The size word the page put in front of its measure goes back in front of it,
+ * since the page asked for a small handful and a handful is not the same ask.
+ * The equivalents go back the way the line offered them, in brackets or after a
  * slash beside the amount they restate.
  */
 function renderScaledLine(
