@@ -92,13 +92,9 @@ describe("the envelope get_recipe returns", () => {
     ]) {
       expect(structured, `missing ${field}`).toHaveProperty(field);
     }
-    expect(Object.keys(structured.yield as object).sort()).toEqual([
-      "factor",
-      "original_count",
-      "original_text",
-      "requested",
-      "unit",
-    ]);
+    expect(
+      Object.keys(structured.yield as object).sort((a, b) => Number(a > b) - Number(a < b)),
+    ).toEqual(["factor", "original_count", "original_text", "requested", "unit"]);
     expect(() => getRecipeOutput.parse(structured)).not.toThrow();
   });
 
