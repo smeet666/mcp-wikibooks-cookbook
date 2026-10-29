@@ -79,7 +79,7 @@ function notesOnWhatThePageIs(
   // three times the fish and cooks a dish nobody wrote.
   const variants = [...new Set(data.ingredientVariants.filter((name) => name !== null))];
   if (variants.length > 0) {
-    const alsoOwn = data.ingredientVariants.some((name) => name === null);
+    const alsoOwn = data.ingredientVariants.includes(null);
     notes.push(
       `This page publishes ${variants.length} alternative ingredient list(s), under ${variants.map((name) => `"${name}"`).join(", ")}${alsoOwn ? ", beside the list the recipe states for itself" : ""}. Each one replaces the others rather than adding to them, so one of them is used and the procedure applies to whichever it is, whatever it says about mixing all the ingredients. 'variant' on every line says which list it came from.`,
     );

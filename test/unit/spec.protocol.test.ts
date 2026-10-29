@@ -75,7 +75,7 @@ describe("the tools a client is offered", () => {
       const tool = tools.find((entry) => entry.name === name);
       return Object.keys(
         (tool?.inputSchema as { properties?: Record<string, unknown> })?.properties ?? {},
-      ).sort();
+      ).sort((a, b) => Number(a > b) - Number(a < b));
     };
     expect(propertiesOf("search_recipes")).toEqual(["limit", "query", "search"]);
     expect(propertiesOf("get_recipe")).toEqual(["id", "max_description_chars", "servings"]);

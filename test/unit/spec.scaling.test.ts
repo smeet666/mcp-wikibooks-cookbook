@@ -59,7 +59,7 @@ describe("the shape of every scaled line", () => {
   it("carries exactly the fields the contract names, and nothing invented", () => {
     const { lines } = scale(["450 g (1 pound) flat noodles", "Salt"], { factor: 2 });
     for (const line of lines) {
-      const keys = Object.keys(line).sort();
+      const keys = Object.keys(line).sort((a, b) => Number(a > b) - Number(a < b));
       expect(keys.filter((key) => key !== "note")).toEqual([
         "amount",
         "amount_max",
@@ -77,7 +77,7 @@ describe("the shape of every scaled line", () => {
   it("matches the output schema the tool declares", () => {
     const { structured } = scale(["5 egg yolks", "Salt"], { factor: 2 });
     expect(() => scaleIngredientsOutput.parse(structured)).not.toThrow();
-    expect(Object.keys(structured).sort()).toEqual([
+    expect(Object.keys(structured).sort((a, b) => Number(a > b) - Number(a < b))).toEqual([
       "factor",
       "ingredients",
       "notes",

@@ -69,7 +69,7 @@ afterEach(() => {
 describe("the envelope search_recipes returns", () => {
   it("carries the fields the recipe contract names", async () => {
     const { structured } = await run("search", { query: "salt" }, "search-recipes");
-    expect(Object.keys(structured).sort()).toEqual([
+    expect(Object.keys(structured).sort((a, b) => Number(a > b) - Number(a < b))).toEqual([
       "notes",
       "query",
       "result_count",
